@@ -320,6 +320,64 @@
     margin-right:10px;
   }
 
+  .admin-toggle{
+    margin-top:14px;
+  }
+  .pin-form{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top:10px;
+  }
+  .pin-form input{width:150px; letter-spacing:0.2em;}
+
+  .admin-panel{
+    margin-top:18px;
+    border:1px solid rgba(201,154,62,0.35);
+    background:var(--gold-pale);
+    border-radius:16px;
+    padding:20px;
+  }
+  .admin-panel h3{
+    font-family:'Manrope', sans-serif;
+    font-size:16px;
+    font-weight:800;
+    margin:0 0 12px;
+    color:#8A6420;
+  }
+  .admin-panel .admin-block + .admin-block{
+    margin-top:20px;
+    padding-top:20px;
+    border-top:1px solid rgba(201,154,62,0.3);
+  }
+  select{
+    font-family:'Manrope', sans-serif;
+    font-size:14px;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+  }
+  table.admin-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  table.admin-table th, table.admin-table td{
+    text-align:left;
+    padding:8px 10px;
+    border-bottom:1px solid rgba(201,154,62,0.25);
+  }
+  table.admin-table th{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600;
+    color:#8A6420;
+    font-size:11px;
+    letter-spacing:0.03em;
+  }
+
   footer{
     padding:36px 24px 52px;
     text-align:center;
@@ -385,6 +443,8 @@
       <summary>Codes de test (à retirer en prod)</summary>
       <div class="codes" id="testCodes"></div>
     </details>
+
+    <div id="adminZone"></div>
   </div>
 </section>
 
@@ -403,9 +463,12 @@
   let chosenAvatar = AVATAR_OPTIONS[0];
 
   let session = null;
-  let profile = null; // { id, username, avatar }
+  let profile = null; // { id, username, avatar, role }
   let cardModels = {}; // id -> model
   let collection = []; // rows from card_codes
+  let adminUnlocked = false;
+
+  const adminZone = document.getElementById('adminZone');
 
   const idbar = document.getElementById('idbar');
   const grid = document.getElementById('collectionGrid');
@@ -611,19 +674,190 @@
     await loadCollection();
     await loadTestCodes();
     renderCollection();
+    renderAdminZone();
   };
 
   codeInput.addEventListener('keydown', e => { if(e.key === 'Enter') redeemBtn.click(); });
+
+  // ---------- Admin ----------
+
+  function renderAdminZone(){
+    if(!session || !profile || profile.role !== 'admin'){
+      adminZone.innerHTML = '';
+      return;
+    }
+    if(!adminUnlocked){
+      adminZone.innerHTML = `
+        <div class="admin-toggle">
+          <div class="pin-form">
+            <input type="password" id="adminPinInput" placeholder="code admin (8 chiffres)" maxlength="8" inputmode="numeric">
+            <button class="ghost" id="adminUnlockBtn">Débloquer le panneau admin</button>
+          </div>
+          <div class="msg" id="adminMsg"></div>
+        </div>
+      `;
+      document.getElementById('adminUnlockBtn').onclick = unlockAdmin;
+      document.getElementById('adminPinInput').addEventListener('keydown', e => { if(e.key === 'Enter') unlockAdmin(); });
+      return;
+    }
+    renderAdminPanel();
+  }
+
+  async function unlockAdmin(){
+    const pin = document.getElementById('adminPinInput').value.trim();
+    const msg = document.getElementById('adminMsg');
+    msg.className = 'msg show';
+    if(!/^\d{8}$/.test(pin)){
+      msg.classList.add('err');
+      msg.textContent = 'Le code admin doit contenir exactement 8 chiffres.';
+      return;
+    }
+    const { data, error } = await sb.rpc('verify_admin_pin', { pin });
+    if(error){
+      msg.classList.add('err');
+      msg.textContent = 'Erreur : ' + error.message;
+      return;
+    }
+    if(!data){
+      msg.classList.add('err');
+      msg.textContent = 'Code admin incorrect (ou pas encore défini — voir plus bas).';
+      renderAdminSetupHint();
+      return;
+    }
+    adminUnlocked = true;
+    renderAdminZone();
+  }
+
+  function renderAdminSetupHint(){
+    const msg = document.getElementById('adminMsg');
+    msg.insertAdjacentHTML('afterend', `
+      <div class="pin-form" id="setupPinForm">
+        <input type="password" id="newPinInput" placeholder="définir mon code (8 chiffres)" maxlength="8" inputmode="numeric">
+        <button class="ghost" id="setPinBtn">Définir ce code</button>
+      </div>
+    `);
+    document.getElementById('setPinBtn').onclick = async () => {
+      const newPin = document.getElementById('newPinInput').value.trim();
+      if(!/^\d{8}$/.test(newPin)){
+        msg.classList.add('err');
+        msg.textContent = 'Le nouveau code doit contenir exactement 8 chiffres.';
+        return;
+      }
+      const { error } = await sb.rpc('set_admin_pin', { pin: newPin });
+      if(error){
+        msg.classList.add('err');
+        msg.textContent = 'Erreur : ' + error.message;
+        return;
+      }
+      msg.classList.remove('err');
+      msg.classList.add('ok');
+      msg.textContent = 'Code défini. Ressaisis-le ci-dessus pour débloquer le panneau.';
+      document.getElementById('setupPinForm').remove();
+    };
+  }
+
+  async function renderAdminPanel(){
+    adminZone.innerHTML = `
+      <div class="admin-panel">
+        <h3>Panneau admin — ${escapeHtml(profile.username)}</h3>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Générer un nouveau code pour une carte existante</p>
+          <div class="pin-form">
+            <select id="newCodeModel"></select>
+            <button class="primary" id="genCodeBtn">Générer un code</button>
+          </div>
+          <div class="msg" id="genCodeMsg"></div>
+        </div>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Changer mon code admin</p>
+          <div class="pin-form">
+            <input type="password" id="changePinInput" placeholder="nouveau code (8 chiffres)" maxlength="8" inputmode="numeric">
+            <button class="ghost" id="changePinBtn">Mettre à jour</button>
+          </div>
+          <div class="msg" id="changePinMsg"></div>
+        </div>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Collectionneurs</p>
+          <div id="adminUsersTable">Chargement…</div>
+        </div>
+      </div>
+    `;
+
+    const select = document.getElementById('newCodeModel');
+    select.innerHTML = Object.values(cardModels).map(m => `<option value="${m.id}">${m.glyph} ${escapeHtml(m.name)}</option>`).join('');
+
+    document.getElementById('genCodeBtn').onclick = async () => {
+      const modelId = select.value;
+      const code = String(Math.floor(1000000 + Math.random() * 9000000));
+      const genMsg = document.getElementById('genCodeMsg');
+      genMsg.className = 'msg show';
+      const { error } = await sb.from('card_codes').insert({ code, model_id: modelId });
+      if(error){
+        genMsg.classList.add('err');
+        genMsg.textContent = 'Erreur : ' + error.message;
+        return;
+      }
+      genMsg.classList.remove('err');
+      genMsg.classList.add('ok');
+      genMsg.textContent = `Nouveau code généré : ${code}`;
+      await loadTestCodes();
+    };
+
+    document.getElementById('changePinBtn').onclick = async () => {
+      const newPin = document.getElementById('changePinInput').value.trim();
+      const changeMsg = document.getElementById('changePinMsg');
+      changeMsg.className = 'msg show';
+      if(!/^\d{8}$/.test(newPin)){
+        changeMsg.classList.add('err');
+        changeMsg.textContent = 'Le code doit contenir exactement 8 chiffres.';
+        return;
+      }
+      const { error } = await sb.rpc('set_admin_pin', { pin: newPin });
+      if(error){
+        changeMsg.classList.add('err');
+        changeMsg.textContent = 'Erreur : ' + error.message;
+        return;
+      }
+      changeMsg.classList.remove('err');
+      changeMsg.classList.add('ok');
+      changeMsg.textContent = 'Code mis à jour.';
+      document.getElementById('changePinInput').value = '';
+    };
+
+    // Liste des collectionneurs avec leur nombre de cartes débloquées
+    const usersDiv = document.getElementById('adminUsersTable');
+    const { data: profiles, error: pErr } = await sb.from('profiles').select('id, username, avatar');
+    const { data: codes, error: cErr } = await sb.from('card_codes').select('claimed_by').not('claimed_by', 'is', null);
+    if(pErr || cErr){
+      usersDiv.textContent = 'Impossible de charger la liste.';
+      return;
+    }
+    const counts = {};
+    codes.forEach(c => { counts[c.claimed_by] = (counts[c.claimed_by] || 0) + 1; });
+    usersDiv.innerHTML = `
+      <table class="admin-table">
+        <thead><tr><th>Collectionneur</th><th>Cartes</th></tr></thead>
+        <tbody>
+          ${profiles.map(p => `<tr><td>${p.avatar} ${escapeHtml(p.username)}</td><td>${counts[p.id] || 0}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    `;
+  }
 
   // ---------- Boot ----------
 
   sb.auth.onAuthStateChange(async (_event, newSession) => {
     session = newSession;
+    adminUnlocked = false;
     await loadProfile();
     renderIdbar();
     await loadCollection();
     await loadTestCodes();
     renderCollection();
+    renderAdminZone();
   });
 
   (async () => {
@@ -635,6 +869,7 @@
     await loadCollection();
     await loadTestCodes();
     renderCollection();
+    renderAdminZone();
   })();
 })();
 </script>
