@@ -321,21 +321,49 @@
   }
 
   .admin-entry{
-    margin-top:14px;
+    position:fixed;
+    top:20px;
+    right:20px;
+    z-index:50;
   }
-  .admin-entry-link{
-    background:none;
-    border:none;
-    padding:0;
-    font-family:'JetBrains Mono', monospace;
-    font-size:12.5px;
-    color:#9AA8A0;
-    text-decoration:underline;
-    text-underline-offset:3px;
+  .admin-gear-btn{
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    background:#fff;
+    border:1px solid var(--line);
+    box-shadow:var(--shadow);
+    display:flex;
+    align-items:center;
+    justify-content:center;
     cursor:pointer;
+    transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+    padding:0;
   }
-  .admin-entry-link:hover{color:var(--sub);}
-  .admin-entry .pin-form{margin-top:10px;}
+  .admin-gear-btn:hover{
+    transform:rotate(45deg);
+    box-shadow:var(--shadow-hover);
+    background:var(--leaf-pale);
+  }
+  .admin-gear-btn svg{width:26px; height:26px; display:block;}
+  .admin-gear-btn.active{background:var(--gold-pale); border-color:rgba(201,154,62,0.4);}
+
+  .admin-entry-popover{
+    position:absolute;
+    top:64px;
+    right:0;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:16px;
+    box-shadow:var(--shadow-hover);
+    padding:16px;
+    width:260px;
+    display:none;
+  }
+  .admin-entry-popover.open{display:block;}
+  .admin-entry-popover .pin-form{margin-top:0; flex-direction:column; align-items:stretch;}
+  .admin-entry-popover input{width:100%;}
+  .admin-entry-popover button{width:100%;}
   .pin-form{
     display:flex;
     gap:8px;
@@ -416,6 +444,10 @@
     .card .glyph{font-size:28px; margin-bottom:10px;}
     .card h3{font-size:17px;}
     .whoami{display:block; margin-bottom:8px;}
+    .admin-entry{top:14px; right:14px;}
+    .admin-gear-btn{width:44px; height:44px;}
+    .admin-gear-btn svg{width:22px; height:22px;}
+    .admin-entry-popover{width:min(78vw, 260px); top:54px;}
   }
 
   @media (max-width: 400px){
@@ -703,18 +735,27 @@
     }
     publicAdminZone.innerHTML = `
       <div class="admin-entry">
-        <button type="button" class="admin-entry-link" id="adminEntryToggle">Je suis admin</button>
-        <div id="adminEntryForm" style="display:none;">
+        <button type="button" class="admin-gear-btn" id="adminEntryToggle" aria-label="Espace admin" title="Espace admin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2F6B49" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+        <div class="admin-entry-popover" id="adminEntryForm">
           <div class="pin-form">
             <input type="password" id="publicPinInput" placeholder="code admin (8 chiffres)" maxlength="8" inputmode="numeric">
-            <button class="ghost" id="publicUnlockBtn">Se connecter</button>
+            <button class="primary" id="publicUnlockBtn">Se connecter</button>
           </div>
           <div class="msg" id="publicAdminMsg"></div>
         </div>
       </div>
     `;
-    document.getElementById('adminEntryToggle').onclick = () => {
-      document.getElementById('adminEntryForm').style.display = 'block';
+    const gearBtn = document.getElementById('adminEntryToggle');
+    const popover = document.getElementById('adminEntryForm');
+    gearBtn.onclick = () => {
+      popover.classList.toggle('open');
+      gearBtn.classList.toggle('active', popover.classList.contains('open'));
+      if(popover.classList.contains('open')) document.getElementById('publicPinInput').focus();
     };
     document.getElementById('publicUnlockBtn').onclick = unlockPublicAdmin;
     document.getElementById('publicPinInput').addEventListener('keydown', e => { if(e.key === 'Enter') unlockPublicAdmin(); });
