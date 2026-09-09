@@ -320,9 +320,22 @@
     margin-right:10px;
   }
 
-  .admin-toggle{
+  .admin-entry{
     margin-top:14px;
   }
+  .admin-entry-link{
+    background:none;
+    border:none;
+    padding:0;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color:#9AA8A0;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    cursor:pointer;
+  }
+  .admin-entry-link:hover{color:var(--sub);}
+  .admin-entry .pin-form{margin-top:10px;}
   .pin-form{
     display:flex;
     gap:8px;
@@ -418,6 +431,7 @@
     <h1>Allermain</h1>
     <p class="lede">Une collection de cartes pour cartographier les allergènes qui comptent pour toi. Chaque exemplaire physique porte un code à sept chiffres — entre-le ici pour le faire entrer dans ta collection.</p>
     <div class="idbar" id="idbar"></div>
+    <div id="publicAdminZone"></div>
   </div>
 </header>
 
@@ -443,8 +457,6 @@
       <summary>Codes de test (à retirer en prod)</summary>
       <div class="codes" id="testCodes"></div>
     </details>
-
-    <div id="adminZone"></div>
   </div>
 </section>
 
@@ -467,8 +479,10 @@
   let cardModels = {}; // id -> model
   let collection = []; // rows from card_codes
   let adminUnlocked = false;
+  let adminPin = null;        // code à 8 chiffres en mémoire, une fois vérifié
+  let adminIdentity = null;   // { username, avatar }
 
-  const adminZone = document.getElementById('adminZone');
+  const publicAdminZone = document.getElementById('publicAdminZone');
 
   const idbar = document.getElementById('idbar');
   const grid = document.getElementById('collectionGrid');
@@ -674,92 +688,71 @@
     await loadCollection();
     await loadTestCodes();
     renderCollection();
-    renderAdminZone();
+    renderPublicAdminEntry();
   };
 
   codeInput.addEventListener('keydown', e => { if(e.key === 'Enter') redeemBtn.click(); });
 
-  // ---------- Admin ----------
+  // ---------- Admin : point d'entrée public (pas besoin d'être connecté) ----------
 
-  function renderAdminZone(){
-    if(!session || !profile || profile.role !== 'admin'){
-      adminZone.innerHTML = '';
+  function renderPublicAdminEntry(){
+    if(adminUnlocked){
+      publicAdminZone.innerHTML = '';
+      renderAdminPanel();
       return;
     }
-    if(!adminUnlocked){
-      adminZone.innerHTML = `
-        <div class="admin-toggle">
+    publicAdminZone.innerHTML = `
+      <div class="admin-entry">
+        <button type="button" class="admin-entry-link" id="adminEntryToggle">Je suis admin</button>
+        <div id="adminEntryForm" style="display:none;">
           <div class="pin-form">
-            <input type="password" id="adminPinInput" placeholder="code admin (8 chiffres)" maxlength="8" inputmode="numeric">
-            <button class="ghost" id="adminUnlockBtn">Débloquer le panneau admin</button>
+            <input type="password" id="publicPinInput" placeholder="code admin (8 chiffres)" maxlength="8" inputmode="numeric">
+            <button class="ghost" id="publicUnlockBtn">Se connecter</button>
           </div>
-          <div class="msg" id="adminMsg"></div>
+          <div class="msg" id="publicAdminMsg"></div>
         </div>
-      `;
-      document.getElementById('adminUnlockBtn').onclick = unlockAdmin;
-      document.getElementById('adminPinInput').addEventListener('keydown', e => { if(e.key === 'Enter') unlockAdmin(); });
-      return;
-    }
-    renderAdminPanel();
+      </div>
+    `;
+    document.getElementById('adminEntryToggle').onclick = () => {
+      document.getElementById('adminEntryForm').style.display = 'block';
+    };
+    document.getElementById('publicUnlockBtn').onclick = unlockPublicAdmin;
+    document.getElementById('publicPinInput').addEventListener('keydown', e => { if(e.key === 'Enter') unlockPublicAdmin(); });
   }
 
-  async function unlockAdmin(){
-    const pin = document.getElementById('adminPinInput').value.trim();
-    const msg = document.getElementById('adminMsg');
+  async function unlockPublicAdmin(){
+    const pin = document.getElementById('publicPinInput').value.trim();
+    const msg = document.getElementById('publicAdminMsg');
     msg.className = 'msg show';
     if(!/^\d{8}$/.test(pin)){
       msg.classList.add('err');
       msg.textContent = 'Le code admin doit contenir exactement 8 chiffres.';
       return;
     }
-    const { data, error } = await sb.rpc('verify_admin_pin', { pin });
+    const { data, error } = await sb.rpc('admin_unlock', { pin });
     if(error){
       msg.classList.add('err');
       msg.textContent = 'Erreur : ' + error.message;
       return;
     }
-    if(!data){
+    if(!data || data.length === 0){
       msg.classList.add('err');
-      msg.textContent = 'Code admin incorrect (ou pas encore défini — voir plus bas).';
-      renderAdminSetupHint();
+      msg.textContent = 'Code admin incorrect.';
       return;
     }
+    adminPin = pin;
+    adminIdentity = data[0];
     adminUnlocked = true;
-    renderAdminZone();
-  }
-
-  function renderAdminSetupHint(){
-    const msg = document.getElementById('adminMsg');
-    msg.insertAdjacentHTML('afterend', `
-      <div class="pin-form" id="setupPinForm">
-        <input type="password" id="newPinInput" placeholder="définir mon code (8 chiffres)" maxlength="8" inputmode="numeric">
-        <button class="ghost" id="setPinBtn">Définir ce code</button>
-      </div>
-    `);
-    document.getElementById('setPinBtn').onclick = async () => {
-      const newPin = document.getElementById('newPinInput').value.trim();
-      if(!/^\d{8}$/.test(newPin)){
-        msg.classList.add('err');
-        msg.textContent = 'Le nouveau code doit contenir exactement 8 chiffres.';
-        return;
-      }
-      const { error } = await sb.rpc('set_admin_pin', { pin: newPin });
-      if(error){
-        msg.classList.add('err');
-        msg.textContent = 'Erreur : ' + error.message;
-        return;
-      }
-      msg.classList.remove('err');
-      msg.classList.add('ok');
-      msg.textContent = 'Code défini. Ressaisis-le ci-dessus pour débloquer le panneau.';
-      document.getElementById('setupPinForm').remove();
-    };
+    renderPublicAdminEntry();
   }
 
   async function renderAdminPanel(){
-    adminZone.innerHTML = `
+    if(cardModels && Object.keys(cardModels).length === 0){
+      await loadCardModels();
+    }
+    publicAdminZone.innerHTML = `
       <div class="admin-panel">
-        <h3>Panneau admin — ${escapeHtml(profile.username)}</h3>
+        <h3>Panneau admin — ${adminIdentity.avatar} ${escapeHtml(adminIdentity.username)}</h3>
 
         <div class="admin-block">
           <p class="section-note" style="margin-bottom:10px;">Générer un nouveau code pour une carte existante</p>
@@ -783,6 +776,10 @@
           <p class="section-note" style="margin-bottom:10px;">Collectionneurs</p>
           <div id="adminUsersTable">Chargement…</div>
         </div>
+
+        <div class="admin-block">
+          <button type="button" class="ghost" id="adminLogoutBtn">Fermer le panneau admin</button>
+        </div>
       </div>
     `;
 
@@ -791,10 +788,9 @@
 
     document.getElementById('genCodeBtn').onclick = async () => {
       const modelId = select.value;
-      const code = String(Math.floor(1000000 + Math.random() * 9000000));
       const genMsg = document.getElementById('genCodeMsg');
       genMsg.className = 'msg show';
-      const { error } = await sb.from('card_codes').insert({ code, model_id: modelId });
+      const { data, error } = await sb.rpc('admin_generate_code', { pin: adminPin, p_model_id: modelId });
       if(error){
         genMsg.classList.add('err');
         genMsg.textContent = 'Erreur : ' + error.message;
@@ -802,7 +798,7 @@
       }
       genMsg.classList.remove('err');
       genMsg.classList.add('ok');
-      genMsg.textContent = `Nouveau code généré : ${code}`;
+      genMsg.textContent = `Nouveau code généré : ${data}`;
       await loadTestCodes();
     };
 
@@ -815,33 +811,37 @@
         changeMsg.textContent = 'Le code doit contenir exactement 8 chiffres.';
         return;
       }
-      const { error } = await sb.rpc('set_admin_pin', { pin: newPin });
+      const { error } = await sb.rpc('admin_change_pin', { old_pin: adminPin, new_pin: newPin });
       if(error){
         changeMsg.classList.add('err');
         changeMsg.textContent = 'Erreur : ' + error.message;
         return;
       }
+      adminPin = newPin;
       changeMsg.classList.remove('err');
       changeMsg.classList.add('ok');
       changeMsg.textContent = 'Code mis à jour.';
       document.getElementById('changePinInput').value = '';
     };
 
-    // Liste des collectionneurs avec leur nombre de cartes débloquées
+    document.getElementById('adminLogoutBtn').onclick = () => {
+      adminUnlocked = false;
+      adminPin = null;
+      adminIdentity = null;
+      renderPublicAdminEntry();
+    };
+
     const usersDiv = document.getElementById('adminUsersTable');
-    const { data: profiles, error: pErr } = await sb.from('profiles').select('id, username, avatar');
-    const { data: codes, error: cErr } = await sb.from('card_codes').select('claimed_by').not('claimed_by', 'is', null);
-    if(pErr || cErr){
+    const { data: rows, error: listErr } = await sb.rpc('admin_list_collectors', { pin: adminPin });
+    if(listErr){
       usersDiv.textContent = 'Impossible de charger la liste.';
       return;
     }
-    const counts = {};
-    codes.forEach(c => { counts[c.claimed_by] = (counts[c.claimed_by] || 0) + 1; });
     usersDiv.innerHTML = `
       <table class="admin-table">
         <thead><tr><th>Collectionneur</th><th>Cartes</th></tr></thead>
         <tbody>
-          ${profiles.map(p => `<tr><td>${p.avatar} ${escapeHtml(p.username)}</td><td>${counts[p.id] || 0}</td></tr>`).join('')}
+          ${rows.map(r => `<tr><td>${r.avatar} ${escapeHtml(r.username)}</td><td>${r.card_count}</td></tr>`).join('')}
         </tbody>
       </table>
     `;
@@ -857,7 +857,7 @@
     await loadCollection();
     await loadTestCodes();
     renderCollection();
-    renderAdminZone();
+    renderPublicAdminEntry();
   });
 
   (async () => {
@@ -869,7 +869,7 @@
     await loadCollection();
     await loadTestCodes();
     renderCollection();
-    renderAdminZone();
+    renderPublicAdminEntry();
   })();
 })();
 </script>
