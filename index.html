@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allermain</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+
+  :root{
+    --bg:#FFFFFF;
+    --panel:#F5FAF6;
+    --leaf:#5FA779;
+    --leaf-deep:#2F6B49;
+    --leaf-pale:#E3F2E7;
+    --gold:#C99A3E;
+    --gold-pale:#FBF1DD;
+    --ink:#1B2620;
+    --sub:#5C6B62;
+    --line: rgba(27,38,32,0.09);
+    --shadow: 0 1px 2px rgba(27,38,32,0.04), 0 8px 24px -12px rgba(27,38,32,0.12);
+    --shadow-hover: 0 4px 8px rgba(27,38,32,0.05), 0 16px 32px -12px rgba(47,107,73,0.18);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Manrope', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:0 24px;}
+
+  header.hero{
+    padding:76px 24px 56px;
+    border-bottom:1px solid var(--line);
+    position:relative;
+    overflow:hidden;
+    background:var(--bg);
+  }
+  header.hero::before{
+    content:'';
+    position:absolute;
+    top:-140px; right:-120px;
+    width:420px; height:420px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(95,167,121,0.20), rgba(95,167,121,0) 70%);
+    pointer-events:none;
+  }
+  header.hero::after{
+    content:'';
+    position:absolute;
+    bottom:-160px; left:10%;
+    width:320px; height:320px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(201,154,62,0.10), rgba(201,154,62,0) 70%);
+    pointer-events:none;
+  }
+  .kicker{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    color:var(--leaf-deep);
+    background:var(--leaf-pale);
+    display:inline-block;
+    padding:5px 11px;
+    border-radius:100px;
+    margin:0 0 18px;
+    position:relative;
+  }
+  h1{
+    font-family:'Manrope', sans-serif;
+    font-weight:800;
+    letter-spacing:-0.03em;
+    font-size:clamp(36px,7vw,60px);
+    line-height:1.03;
+    margin:0 0 18px;
+    max-width:11ch;
+    color:var(--ink);
+    position:relative;
+  }
+  .hero p.lede{
+    font-size:17px;
+    line-height:1.65;
+    max-width:52ch;
+    color:var(--sub);
+    margin:0 0 32px;
+    position:relative;
+  }
+
+  .idbar{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    position:relative;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px;
+    box-shadow:var(--shadow);
+  }
+  .idbar:has(.whoami){
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    padding:0;
+  }
+  input[type=text], input[type=email], input[type=password]{
+    font-family:'JetBrains Mono', monospace;
+    font-size:14px;
+    background:#fff;
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:11px 14px;
+    border-radius:10px;
+    min-width:200px;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  input[type=text]::placeholder, input[type=email]::placeholder, input[type=password]::placeholder{color:#9AA8A0;}
+  input[type=text]:focus, input[type=email]:focus, input[type=password]:focus{
+    outline:none;
+    border-color:var(--leaf);
+    box-shadow:0 0 0 3px rgba(95,167,121,0.18);
+  }
+  button{
+    font-family:'Manrope', sans-serif;
+    font-weight:700;
+    font-size:14px;
+    padding:11px 22px;
+    border-radius:10px;
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease, color .12s ease;
+  }
+  button.primary{background:var(--leaf-deep); color:#fff; box-shadow:0 2px 6px rgba(47,107,73,0.25);}
+  button.primary:hover{background:#25583B; transform:translateY(-1px); box-shadow:0 6px 14px rgba(47,107,73,0.3);}
+  button.primary:active{transform:translateY(0);}
+  button.ghost{background:#fff; border-color:var(--line); color:var(--ink);}
+  button.ghost:hover{border-color:var(--leaf-deep); color:var(--leaf-deep); transform:translateY(-1px);}
+  button:disabled{opacity:0.5; cursor:not-allowed; transform:none;}
+
+  .whoami{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13.5px;
+    color:var(--sub);
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:9px 14px;
+    border-radius:100px;
+  }
+  .whoami b{color:var(--leaf-deep); font-weight:700;}
+  .whoami .avatar{font-size:16px; margin-right:4px;}
+
+  .avatar-picker{
+    display:flex;
+    gap:6px;
+    align-items:center;
+  }
+  .avatar-picker button.avatar-opt{
+    font-size:18px;
+    padding:7px 10px;
+    border-radius:9px;
+    border:1px solid var(--line);
+    background:#fff;
+    cursor:pointer;
+    line-height:1;
+    transition:border-color .12s ease, background .12s ease, transform .12s ease;
+  }
+  .avatar-picker button.avatar-opt:hover{transform:translateY(-1px);}
+  .avatar-picker button.avatar-opt.selected{
+    border-color:var(--leaf-deep);
+    background:var(--leaf-pale);
+  }
+
+  section{padding:56px 24px;}
+  section + section{border-top:1px solid var(--line);}
+  h2{
+    font-family:'Manrope', sans-serif;
+    font-size:25px;
+    font-weight:800;
+    letter-spacing:-0.01em;
+    margin:0 0 6px;
+    color:var(--ink);
+  }
+  .section-note{
+    color:var(--sub);
+    font-size:14.5px;
+    margin:0 0 26px;
+  }
+
+  .redeem{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:flex-start;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px;
+    box-shadow:var(--shadow);
+  }
+  .redeem input{width:220px; letter-spacing:0.08em;}
+  .msg{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    margin-top:14px;
+    padding:11px 15px;
+    border-radius:10px;
+    display:none;
+  }
+  .msg.show{display:block;}
+  .msg.ok{background:var(--leaf-pale); color:var(--leaf-deep); border:1px solid rgba(47,107,73,0.2);}
+  .msg.err{background:#FCEEEC; color:#B24A38; border:1px solid rgba(178,74,56,0.2);}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(200px,1fr));
+    gap:16px;
+  }
+
+  .card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:22px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    transition:transform .16s ease, box-shadow .16s ease;
+  }
+  .card:hover{transform:translateY(-3px); box-shadow:var(--shadow-hover);}
+  .card::before{
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0;
+    height:3px;
+    background:linear-gradient(90deg, var(--leaf), var(--gold));
+    opacity:0;
+    transition:opacity .16s ease;
+  }
+  .card:hover::before{opacity:1;}
+  .card.locked{opacity:0.45;}
+  .card .rarity{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.04em;
+    color:var(--leaf-deep);
+    background:var(--leaf-pale);
+    display:inline-block;
+    padding:4px 9px;
+    border-radius:100px;
+    margin:0 0 14px;
+  }
+  .card .rarity.legendary{color:var(--gold); background:var(--gold-pale);}
+  .card .glyph{
+    font-size:36px;
+    margin-bottom:12px;
+    display:block;
+  }
+  .card h3{
+    font-family:'Manrope', sans-serif;
+    font-weight:700;
+    font-size:19px;
+    margin:0 0 6px;
+    color:var(--ink);
+  }
+  .card p{
+    font-size:13.5px;
+    line-height:1.55;
+    color:var(--sub);
+    margin:0 0 16px;
+  }
+  .card .serial{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:#8A968E;
+    border-top:1px solid var(--line);
+    padding-top:12px;
+    display:flex;
+    justify-content:space-between;
+  }
+  .card .serial b{color:var(--ink); font-weight:600;}
+
+  .empty{
+    border:1.5px dashed var(--line);
+    border-radius:16px;
+    padding:40px 24px;
+    text-align:center;
+    color:var(--sub);
+    font-size:14px;
+    background:var(--panel);
+  }
+
+  .devtools{
+    margin-top:32px;
+    padding:16px 18px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:var(--panel);
+  }
+  .devtools summary{
+    cursor:pointer;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--sub);
+  }
+  .devtools .codes{
+    margin-top:12px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    line-height:2;
+    color:var(--sub);
+  }
+  .devtools .codes span{
+    background:#fff;
+    color:var(--leaf-deep);
+    padding:3px 9px;
+    border-radius:100px;
+    margin-right:10px;
+  }
+
+  footer{
+    padding:36px 24px 52px;
+    text-align:center;
+    font-size:12.5px;
+    color:#AAB4AE;
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  @media (max-width: 640px){
+    header.hero{padding:44px 20px 36px;}
+    .wrap{padding:0 20px;}
+    section{padding:36px 20px;}
+    .hero p.lede{font-size:15.5px;}
+    .idbar{width:100%; flex-direction:column; align-items:stretch;}
+    .idbar input[type=text], .idbar input[type=email], .idbar input[type=password]{width:100%; min-width:0;}
+    .idbar button{width:100%;}
+    .avatar-picker{flex-wrap:wrap; justify-content:center;}
+    .redeem{flex-direction:column; align-items:stretch;}
+    .redeem input{width:100%;}
+    .redeem button{width:100%;}
+    .grid{grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:12px;}
+    .card{padding:16px;}
+    .card .glyph{font-size:28px; margin-bottom:10px;}
+    .card h3{font-size:17px;}
+    .whoami{display:block; margin-bottom:8px;}
+  }
+
+  @media (max-width: 400px){
+    .grid{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">CARNET DE TERRAIN — ÉD. 01</p>
+    <h1>Allermain</h1>
+    <p class="lede">Une collection de cartes pour cartographier les allergènes qui comptent pour toi. Chaque exemplaire physique porte un code à sept chiffres — entre-le ici pour le faire entrer dans ta collection.</p>
+    <div class="idbar" id="idbar"></div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Débloquer une carte</h2>
+    <p class="section-note">Saisis le code à 7 chiffres imprimé sur ta carte.</p>
+    <div class="redeem">
+      <input type="text" id="codeInput" placeholder="0000000" maxlength="7" inputmode="numeric">
+      <button class="primary" id="redeemBtn">Débloquer</button>
+    </div>
+    <div class="msg" id="redeemMsg"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Ta collection</h2>
+    <p class="section-note" id="collectionNote"></p>
+    <div class="grid" id="collectionGrid"></div>
+
+    <details class="devtools">
+      <summary>Codes de test (à retirer en prod)</summary>
+      <div class="codes" id="testCodes"></div>
+    </details>
+  </div>
+</section>
+
+<footer>Allermain — projet perso, v1 (connecté à Supabase).</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+  // --- Config Supabase ---
+  const SUPABASE_URL = 'https://ptujuyctoapckraxaurq.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dWp1eWN0b2FwY2tyYXhhdXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MzU2MjEsImV4cCI6MjEwNDUxMTYyMX0.3e4Q4XUPPsn9Px-6ITtOfItlnbxjsI2XAIcS4FElcIw';
+
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const AVATAR_OPTIONS = ['🌿','🦊','🐝','🌻','🍃','🐌','🌼','🦔'];
+  let chosenAvatar = AVATAR_OPTIONS[0];
+
+  let session = null;
+  let profile = null; // { id, username, avatar }
+  let cardModels = {}; // id -> model
+  let collection = []; // rows from card_codes
+
+  const idbar = document.getElementById('idbar');
+  const grid = document.getElementById('collectionGrid');
+  const note = document.getElementById('collectionNote');
+  const testCodes = document.getElementById('testCodes');
+  const redeemBtn = document.getElementById('redeemBtn');
+  const codeInput = document.getElementById('codeInput');
+  const redeemMsg = document.getElementById('redeemMsg');
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------- Auth UI ----------
+
+  function renderIdbar(){
+    if(!session){
+      idbar.innerHTML = `
+        <input type="text" id="userInput" placeholder="pseudo" maxlength="24">
+        <div class="avatar-picker" id="avatarPicker"></div>
+        <input type="email" id="emailInput" placeholder="email">
+        <input type="password" id="passInput" placeholder="mot de passe">
+        <button class="primary" id="loginBtn">Se connecter</button>
+        <button class="ghost" id="signupBtn">Créer un compte</button>
+      `;
+      const picker = document.getElementById('avatarPicker');
+      picker.innerHTML = AVATAR_OPTIONS.map(a =>
+        `<button type="button" class="avatar-opt${a===chosenAvatar?' selected':''}" data-avatar="${a}">${a}</button>`
+      ).join('');
+      picker.querySelectorAll('.avatar-opt').forEach(btn => {
+        btn.onclick = () => {
+          chosenAvatar = btn.dataset.avatar;
+          picker.querySelectorAll('.avatar-opt').forEach(b => b.classList.toggle('selected', b === btn));
+        };
+      });
+      document.getElementById('loginBtn').onclick = () => authAction('signInWithPassword');
+      document.getElementById('signupBtn').onclick = () => authAction('signUp');
+    } else {
+      const label = profile ? `${profile.avatar} ${escapeHtml(profile.username)}` : escapeHtml(session.user.email);
+      idbar.innerHTML = `<span class="whoami">Connecté comme <b>${label}</b></span> <button class="ghost" id="logoutBtn">Se déconnecter</button>`;
+      document.getElementById('logoutBtn').onclick = async () => {
+        await sb.auth.signOut();
+      };
+    }
+  }
+
+  async function authAction(method){
+    const email = document.getElementById('emailInput').value.trim();
+    const password = document.getElementById('passInput').value;
+    const username = document.getElementById('userInput').value.trim();
+    redeemMsg.className = 'msg show';
+    if(!email || !password){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Renseigne un email et un mot de passe.';
+      return;
+    }
+    if(method === 'signUp' && !username){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Choisis un pseudo pour créer ton compte.';
+      return;
+    }
+    const { data, error } = await sb.auth[method]({ email, password });
+    if(error){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = error.message.includes('already registered')
+        ? 'Un compte existe déjà avec cet email — connecte-toi plutôt.'
+        : error.message;
+      return;
+    }
+    if(method === 'signUp'){
+      // Crée le profil associé (pseudo + avatar) si la session est déjà active
+      // (si la confirmation par email est activée, ceci se fera à la première connexion)
+      if(data.user){
+        const { error: profileError } = await sb.from('profiles').insert({
+          id: data.user.id,
+          username,
+          avatar: chosenAvatar
+        });
+        if(profileError && profileError.code === '23505'){
+          redeemMsg.classList.add('err');
+          redeemMsg.textContent = 'Ce pseudo est déjà pris, choisis-en un autre.';
+          return;
+        }
+      }
+      redeemMsg.classList.remove('err');
+      redeemMsg.classList.add('ok');
+      redeemMsg.textContent = 'Compte créé. Vérifie ta boîte mail si une confirmation est requise, puis connecte-toi.';
+    } else {
+      redeemMsg.className = 'msg';
+    }
+  }
+
+  // ---------- Data ----------
+
+  async function loadProfile(){
+    if(!session){ profile = null; return; }
+    const { data, error } = await sb
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    profile = error ? null : data;
+  }
+
+  async function loadCardModels(){
+    const { data, error } = await sb.from('card_models').select('*');
+    if(error) return;
+    cardModels = {};
+    (data || []).forEach(m => cardModels[m.id] = m);
+  }
+
+  async function loadCollection(){
+    if(!session){ collection = []; return; }
+    const { data, error } = await sb
+      .from('card_codes')
+      .select('*')
+      .eq('claimed_by', session.user.id);
+    collection = error ? [] : data;
+  }
+
+  async function loadTestCodes(){
+    const { data, error } = await sb
+      .from('card_codes')
+      .select('code, model_id')
+      .is('claimed_by', null)
+      .limit(20);
+    if(error){ testCodes.innerHTML = ''; return; }
+    testCodes.innerHTML = (data || []).map(row => {
+      const m = cardModels[row.model_id];
+      return `<div><span>${row.code}</span>${m ? m.name : row.model_id}</div>`;
+    }).join('') || '<div>Aucun code disponible pour l’instant.</div>';
+  }
+
+  function renderCollection(){
+    if(!session){
+      note.textContent = 'Connecte-toi pour voir ou démarrer ta collection.';
+      grid.innerHTML = `<div class="empty">Aucune session active.</div>`;
+      return;
+    }
+    if(collection.length === 0){
+      note.textContent = 'Rien encore débloqué — entre un code ci-dessus pour commencer.';
+      grid.innerHTML = `<div class="empty">Ta collection est vide pour l’instant.</div>`;
+      return;
+    }
+    note.textContent = `${collection.length} carte${collection.length>1?'s':''} débloquée${collection.length>1?'s':''}.`;
+    grid.innerHTML = collection.map(entry => {
+      const m = cardModels[entry.model_id];
+      if(!m) return '';
+      return `
+        <div class="card">
+          <p class="rarity${m.rarity === 'LÉGENDAIRE' ? ' legendary' : ''}">${m.rarity}</p>
+          <span class="glyph">${m.glyph}</span>
+          <h3>${escapeHtml(m.name)}</h3>
+          <p>${escapeHtml(m.description)}</p>
+          <div class="serial"><span>N° série</span><b>${entry.code}</b></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---------- Redeem ----------
+
+  redeemBtn.onclick = async () => {
+    const code = codeInput.value.trim();
+    redeemMsg.className = 'msg show';
+
+    if(!session){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Connecte-toi d’abord.';
+      return;
+    }
+    if(!/^\d{7}$/.test(code)){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Le code doit contenir exactement 7 chiffres.';
+      return;
+    }
+
+    // La policy RLS n'autorise l'update que si claimed_by est encore NULL,
+    // et force claimed_by = auth.uid() — donc pas besoin de vérifier "déjà pris" à part.
+    const { data, error } = await sb
+      .from('card_codes')
+      .update({ claimed_by: session.user.id, claimed_at: new Date().toISOString() })
+      .eq('code', code)
+      .is('claimed_by', null)
+      .select();
+
+    if(error){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Erreur : ' + error.message;
+      return;
+    }
+    if(!data || data.length === 0){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Code invalide ou déjà utilisé par quelqu’un.';
+      return;
+    }
+
+    codeInput.value = '';
+    redeemMsg.classList.remove('err');
+    redeemMsg.classList.add('ok');
+    const m = cardModels[data[0].model_id];
+    redeemMsg.textContent = `Carte débloquée : ${m ? m.name : data[0].model_id}.`;
+    await loadCollection();
+    await loadTestCodes();
+    renderCollection();
+  };
+
+  codeInput.addEventListener('keydown', e => { if(e.key === 'Enter') redeemBtn.click(); });
+
+  // ---------- Boot ----------
+
+  sb.auth.onAuthStateChange(async (_event, newSession) => {
+    session = newSession;
+    await loadProfile();
+    renderIdbar();
+    await loadCollection();
+    await loadTestCodes();
+    renderCollection();
+  });
+
+  (async () => {
+    const { data } = await sb.auth.getSession();
+    session = data.session;
+    await loadCardModels();
+    await loadProfile();
+    renderIdbar();
+    await loadCollection();
+    await loadTestCodes();
+    renderCollection();
+  })();
+})();
+</script>
+
+</body>
+</html>
