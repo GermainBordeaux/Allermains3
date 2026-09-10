@@ -746,7 +746,7 @@
         </button>
         <div class="admin-entry-popover" id="adminEntryForm">
           <div class="pin-form">
-            <input type="password" id="publicPinInput" placeholder="code admin (8 chiffres)" maxlength="8" inputmode="numeric">
+            <input type="password" id="publicPinInput" placeholder="code admin (8 chiffres)" maxlength="8" inputmode="numeric" autocomplete="off">
             <button class="primary" id="publicUnlockBtn">Se connecter</button>
           </div>
           <div class="msg" id="publicAdminMsg"></div>
@@ -799,16 +799,16 @@
         <div class="admin-block">
           <p class="section-note" style="margin-bottom:10px;">Créer une nouvelle carte</p>
           <div class="pin-form" style="flex-direction:column; align-items:stretch; gap:8px;">
-            <input type="text" id="newCardId" placeholder="identifiant unique (ex: noix)">
-            <input type="text" id="newCardName" placeholder="nom affiché (ex: Noix de cajou)">
+            <input type="text" id="newCardId" placeholder="identifiant unique (ex: noix)" autocomplete="off">
+            <input type="text" id="newCardName" placeholder="nom affiché (ex: Noix de cajou)" autocomplete="off">
             <select id="newCardRarity">
               <option value="COMMUNE">Commune</option>
               <option value="PEU COMMUNE">Peu commune</option>
               <option value="RARE">Rare</option>
               <option value="LÉGENDAIRE">Légendaire</option>
             </select>
-            <input type="text" id="newCardGlyph" placeholder="emoji (ex: 🥜)" maxlength="4">
-            <input type="text" id="newCardDesc" placeholder="petite description">
+            <input type="text" id="newCardGlyph" placeholder="emoji (ex: 🥜)" maxlength="4" autocomplete="off">
+            <input type="text" id="newCardDesc" placeholder="petite description" autocomplete="off">
             <button class="primary" id="createCardBtn">Créer la carte</button>
           </div>
           <div class="msg" id="createCardMsg"></div>
@@ -826,7 +826,7 @@
         <div class="admin-block">
           <p class="section-note" style="margin-bottom:10px;">Changer mon code admin</p>
           <div class="pin-form">
-            <input type="password" id="changePinInput" placeholder="nouveau code (8 chiffres)" maxlength="8" inputmode="numeric">
+            <input type="password" id="changePinInput" placeholder="nouveau code (8 chiffres)" maxlength="8" inputmode="numeric" autocomplete="new-password">
             <button class="ghost" id="changePinBtn">Mettre à jour</button>
           </div>
           <div class="msg" id="changePinMsg"></div>
