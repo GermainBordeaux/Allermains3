@@ -797,6 +797,24 @@
         <h3>Panneau admin — ${adminIdentity.avatar} ${escapeHtml(adminIdentity.username)}</h3>
 
         <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Créer une nouvelle carte</p>
+          <div class="pin-form" style="flex-direction:column; align-items:stretch; gap:8px;">
+            <input type="text" id="newCardId" placeholder="identifiant unique (ex: noix)">
+            <input type="text" id="newCardName" placeholder="nom affiché (ex: Noix de cajou)">
+            <select id="newCardRarity">
+              <option value="COMMUNE">Commune</option>
+              <option value="PEU COMMUNE">Peu commune</option>
+              <option value="RARE">Rare</option>
+              <option value="LÉGENDAIRE">Légendaire</option>
+            </select>
+            <input type="text" id="newCardGlyph" placeholder="emoji (ex: 🥜)" maxlength="4">
+            <input type="text" id="newCardDesc" placeholder="petite description">
+            <button class="primary" id="createCardBtn">Créer la carte</button>
+          </div>
+          <div class="msg" id="createCardMsg"></div>
+        </div>
+
+        <div class="admin-block">
           <p class="section-note" style="margin-bottom:10px;">Générer un nouveau code pour une carte existante</p>
           <div class="pin-form">
             <select id="newCodeModel"></select>
@@ -853,6 +871,54 @@
       genMsg.classList.remove('err');
       genMsg.classList.add('ok');
       genMsg.textContent = `Nouveau code généré : ${data}`;
+      await loadTestCodes();
+    };
+
+    document.getElementById('createCardBtn').onclick = async () => {
+      const id = document.getElementById('newCardId').value.trim().toLowerCase().replace(/\s+/g, '-');
+      const name = document.getElementById('newCardName').value.trim();
+      const rarity = document.getElementById('newCardRarity').value;
+      const glyph = document.getElementById('newCardGlyph').value.trim() || '🃏';
+      const description = document.getElementById('newCardDesc').value.trim();
+      const createMsg = document.getElementById('createCardMsg');
+      createMsg.className = 'msg show';
+
+      if(!id || !name){
+        createMsg.classList.add('err');
+        createMsg.textContent = 'L\'identifiant et le nom sont obligatoires.';
+        return;
+      }
+
+      const { error } = await sb.rpc('admin_create_card_model', {
+        pin: adminPin,
+        p_id: id,
+        p_name: name,
+        p_rarity: rarity,
+        p_glyph: glyph,
+        p_description: description
+      });
+      if(error){
+        createMsg.classList.add('err');
+        createMsg.textContent = error.message.includes('duplicate key')
+          ? 'Cet identifiant de carte existe déjà, choisis-en un autre.'
+          : 'Erreur : ' + error.message;
+        return;
+      }
+
+      createMsg.classList.remove('err');
+      createMsg.classList.add('ok');
+      createMsg.textContent = `Carte "${name}" créée.`;
+      document.getElementById('newCardId').value = '';
+      document.getElementById('newCardName').value = '';
+      document.getElementById('newCardGlyph').value = '';
+      document.getElementById('newCardDesc').value = '';
+
+      // Rafraîchit le menu "générer un code" avec la nouvelle carte incluse
+      await loadCardModels();
+      const refreshedList = Object.values(cardModels);
+      select.innerHTML = refreshedList.map(m => `<option value="${m.id}">${m.glyph} ${escapeHtml(m.name)}</option>`).join('');
+      select.disabled = false;
+      document.getElementById('genCodeBtn').disabled = false;
       await loadTestCodes();
     };
 
