@@ -255,12 +255,12 @@
   .card .rarity.legendary{color:var(--gold); background:var(--gold-pale);}
   .card .category{
     font-family:'JetBrains Mono', monospace;
-    font-size:10px;
+    font-size:10.5px;
     letter-spacing:0.04em;
     display:inline-block;
-    padding:3px 8px;
+    padding:4px 9px;
     border-radius:100px;
-    margin:0 0 14px 6px;
+    margin:0 0 14px;
   }
   .card .category.fait-main{color:#8A6420; background:var(--gold-pale); border:1px solid rgba(201,154,62,0.4);}
   .card .category.classique{color:var(--leaf-deep); background:var(--leaf-pale);}
@@ -684,7 +684,7 @@
       if(!m) return '';
       return `
         <div class="card">
-          <p class="rarity${m.rarity === 'LÉGENDAIRE' ? ' legendary' : ''}">${m.rarity}<span class="category ${m.category || 'classique'}">${categoryLabel(m.category)}</span></p>
+          <p class="category ${m.category || 'classique'}">${categoryLabel(m.category)}</p>
           <span class="glyph">${m.glyph}</span>
           <h3>${escapeHtml(m.name)}</h3>
           <p>${escapeHtml(m.description)}</p>
@@ -817,12 +817,6 @@
           <div class="pin-form" style="flex-direction:column; align-items:stretch; gap:8px;">
             <input type="text" id="newCardId" placeholder="identifiant unique (ex: noix)" autocomplete="off">
             <input type="text" id="newCardName" placeholder="nom affiché (ex: Noix de cajou)" autocomplete="off">
-            <select id="newCardRarity">
-              <option value="COMMUNE">Commune</option>
-              <option value="PEU COMMUNE">Peu commune</option>
-              <option value="RARE">Rare</option>
-              <option value="LÉGENDAIRE">Légendaire</option>
-            </select>
             <select id="newCardCategory">
               <option value="classique">Classique</option>
               <option value="bizarre">Bizarre (style Uranium)</option>
@@ -898,7 +892,6 @@
     document.getElementById('createCardBtn').onclick = async () => {
       const id = document.getElementById('newCardId').value.trim().toLowerCase().replace(/\s+/g, '-');
       const name = document.getElementById('newCardName').value.trim();
-      const rarity = document.getElementById('newCardRarity').value;
       const category = document.getElementById('newCardCategory').value;
       const glyph = document.getElementById('newCardGlyph').value.trim() || '🃏';
       const description = document.getElementById('newCardDesc').value.trim();
@@ -915,7 +908,6 @@
         pin: adminPin,
         p_id: id,
         p_name: name,
-        p_rarity: rarity,
         p_glyph: glyph,
         p_description: description,
         p_category: category
