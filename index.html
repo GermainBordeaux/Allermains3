@@ -253,6 +253,18 @@
     margin:0 0 14px;
   }
   .card .rarity.legendary{color:var(--gold); background:var(--gold-pale);}
+  .card .category{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.04em;
+    display:inline-block;
+    padding:3px 8px;
+    border-radius:100px;
+    margin:0 0 14px 6px;
+  }
+  .card .category.fait-main{color:#8A6420; background:var(--gold-pale); border:1px solid rgba(201,154,62,0.4);}
+  .card .category.classique{color:var(--leaf-deep); background:var(--leaf-pale);}
+  .card .category.bizarre{color:#7A3FA0; background:#F1E6F7;}
   .card .glyph{
     font-size:36px;
     margin-bottom:12px;
@@ -528,6 +540,10 @@
     return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  function categoryLabel(cat){
+    return { 'fait-main': 'FAIT MAIN', 'classique': 'CLASSIQUE', 'bizarre': 'BIZARRE' }[cat] || 'CLASSIQUE';
+  }
+
   // ---------- Auth UI ----------
 
   function renderIdbar(){
@@ -668,7 +684,7 @@
       if(!m) return '';
       return `
         <div class="card">
-          <p class="rarity${m.rarity === 'LÉGENDAIRE' ? ' legendary' : ''}">${m.rarity}</p>
+          <p class="rarity${m.rarity === 'LÉGENDAIRE' ? ' legendary' : ''}">${m.rarity}<span class="category ${m.category || 'classique'}">${categoryLabel(m.category)}</span></p>
           <span class="glyph">${m.glyph}</span>
           <h3>${escapeHtml(m.name)}</h3>
           <p>${escapeHtml(m.description)}</p>
@@ -807,6 +823,11 @@
               <option value="RARE">Rare</option>
               <option value="LÉGENDAIRE">Légendaire</option>
             </select>
+            <select id="newCardCategory">
+              <option value="classique">Classique</option>
+              <option value="bizarre">Bizarre (style Uranium)</option>
+              <option value="fait-main">Fait main (la plus rare — croquis original)</option>
+            </select>
             <input type="text" id="newCardGlyph" placeholder="emoji (ex: 🥜)" maxlength="4" autocomplete="off">
             <input type="text" id="newCardDesc" placeholder="petite description" autocomplete="off">
             <button class="primary" id="createCardBtn">Créer la carte</button>
@@ -878,6 +899,7 @@
       const id = document.getElementById('newCardId').value.trim().toLowerCase().replace(/\s+/g, '-');
       const name = document.getElementById('newCardName').value.trim();
       const rarity = document.getElementById('newCardRarity').value;
+      const category = document.getElementById('newCardCategory').value;
       const glyph = document.getElementById('newCardGlyph').value.trim() || '🃏';
       const description = document.getElementById('newCardDesc').value.trim();
       const createMsg = document.getElementById('createCardMsg');
@@ -895,7 +917,8 @@
         p_name: name,
         p_rarity: rarity,
         p_glyph: glyph,
-        p_description: description
+        p_description: description,
+        p_category: category
       });
       if(error){
         createMsg.classList.add('err');
