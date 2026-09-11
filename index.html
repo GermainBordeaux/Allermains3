@@ -760,7 +760,7 @@
 
   async function loadCollection(){
     if(!session){ collection = []; return; }
-    const { data, error } = await sb.rpc('my_collection');
+    const { data, error } = await sb.rpc('my_collection', { p_user_id: session.user.id });
     collection = error ? [] : data;
   }
 
@@ -825,7 +825,7 @@
 
     // Passe par une fonction sécurisée côté base, qui vérifie elle-même
     // l'identité de l'appelant plutôt que de dépendre d'une policy RLS.
-    const { data, error } = await sb.rpc('redeem_card_code', { p_code: code });
+    const { data, error } = await sb.rpc('redeem_card_code', { p_code: code, p_user_id: session.user.id });
 
     if(error){
       redeemMsg.classList.add('err');
@@ -898,7 +898,7 @@
           return;
         }
 
-        const { error } = await sb.rpc('update_my_phone', { p_phone: phone });
+        const { error } = await sb.rpc('update_my_phone', { p_phone: phone, p_user_id: session.user.id });
         if(error){
           msg.classList.add('err');
           msg.textContent = error.message.includes('profile not found')
