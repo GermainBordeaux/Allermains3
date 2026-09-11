@@ -881,10 +881,21 @@
         const phone = document.getElementById('phoneInput').value.trim();
         const msg = document.getElementById('settingsMsg');
         msg.className = 'msg show';
+
+        if(phone && !/^[0-9+][0-9 .-]{5,19}$/.test(phone)){
+          msg.classList.add('err');
+          msg.textContent = 'Numéro invalide — utilise seulement des chiffres, espaces, points, tirets, et un + au début si besoin.';
+          return;
+        }
+
         const { error } = await sb.rpc('update_my_phone', { p_phone: phone });
         if(error){
           msg.classList.add('err');
-          msg.textContent = 'Erreur : ' + error.message;
+          msg.textContent = error.message.includes('profile not found')
+            ? 'Ton profil est introuvable en base — reconnecte-toi ou recrée un compte.'
+            : error.message.includes('invalid phone format')
+            ? 'Numéro invalide.'
+            : 'Erreur : ' + error.message;
           return;
         }
         msg.classList.remove('err');
