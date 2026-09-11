@@ -617,6 +617,16 @@
 
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  // --- DEBUG TEMPORAIRE — à retirer une fois le problème résolu ---
+  window.debugAllermain = async () => {
+    const { data: sessionData } = await sb.auth.getSession();
+    const { data: whoamiData, error: whoamiError } = await sb.rpc('whoami');
+    const { data: profileData, error: profileError } = await sb.from('profiles').select('*').eq('id', sessionData.session.user.id);
+    console.log('session.user.id (client) :', sessionData.session.user.id);
+    console.log('auth.uid() (côté base)   :', whoamiData, whoamiError);
+    console.log('profil trouvé via .eq()  :', profileData, profileError);
+  };
+
   const AVATAR_OPTIONS = ['🌿','🦊','🐝','🌻','🍃','🐌','🌼','🦔'];
   let chosenAvatar = AVATAR_OPTIONS[0];
 
