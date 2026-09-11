@@ -9,7 +9,1371 @@
 
   :root{
     --bg:#FFFFFF;
+    --panel:#F5FAF6;<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Allermain</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+
+  :root{
+    --bg:#FFFFFF;
     --panel:#F5FAF6;
+    --leaf:#5FA779;
+    --leaf-deep:#2F6B49;
+    --leaf-pale:#E3F2E7;
+    --gold:#C99A3E;
+    --gold-pale:#FBF1DD;
+    --ink:#1B2620;
+    --sub:#5C6B62;
+    --line: rgba(27,38,32,0.09);
+    --shadow: 0 1px 2px rgba(27,38,32,0.04), 0 8px 24px -12px rgba(27,38,32,0.12);
+    --shadow-hover: 0 4px 8px rgba(27,38,32,0.05), 0 16px 32px -12px rgba(47,107,73,0.18);
+  }
+  html[data-theme="dark"]{
+    --bg:#0F1613;
+    --panel:#161F1B;
+    --leaf:#6FBF8D;
+    --leaf-deep:#7FD6A0;
+    --leaf-pale:#1D3327;
+    --gold:#E3B75A;
+    --gold-pale:#332A15;
+    --ink:#EAF0EC;
+    --sub:#94A39B;
+    --line: rgba(234,240,236,0.10);
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    --shadow-hover: 0 4px 8px rgba(0,0,0,0.35), 0 16px 32px -12px rgba(127,214,160,0.15);
+  }
+  html[data-theme="dark"] button.ghost{ color: var(--ink); }
+  body, .card, input, select, button{
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Manrope', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:0 24px;}
+
+  header.hero{
+    padding:76px 24px 56px;
+    border-bottom:1px solid var(--line);
+    position:relative;
+    overflow:hidden;
+    background:var(--bg);
+  }
+  header.hero::before{
+    content:'';
+    position:absolute;
+    top:-140px; right:-120px;
+    width:420px; height:420px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(95,167,121,0.20), rgba(95,167,121,0) 70%);
+    pointer-events:none;
+  }
+  header.hero::after{
+    content:'';
+    position:absolute;
+    bottom:-160px; left:10%;
+    width:320px; height:320px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(201,154,62,0.10), rgba(201,154,62,0) 70%);
+    pointer-events:none;
+  }
+  .kicker{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    color:var(--leaf-deep);
+    background:var(--leaf-pale);
+    display:inline-block;
+    padding:5px 11px;
+    border-radius:100px;
+    margin:0 0 18px;
+    position:relative;
+  }
+  h1{
+    font-family:'Manrope', sans-serif;
+    font-weight:800;
+    letter-spacing:-0.03em;
+    font-size:clamp(36px,7vw,60px);
+    line-height:1.03;
+    margin:0 0 18px;
+    max-width:11ch;
+    color:var(--ink);
+    position:relative;
+  }
+  .hero p.lede{
+    font-size:17px;
+    line-height:1.65;
+    max-width:52ch;
+    color:var(--sub);
+    margin:0 0 32px;
+    position:relative;
+  }
+
+  .idbar{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    position:relative;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px;
+    box-shadow:var(--shadow);
+  }
+  .idbar:has(.whoami){
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    padding:0;
+  }
+  input[type=text], input[type=email], input[type=password]{
+    font-family:'JetBrains Mono', monospace;
+    font-size:14px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:11px 14px;
+    border-radius:10px;
+    min-width:200px;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  input[type=text]::placeholder, input[type=email]::placeholder, input[type=password]::placeholder{color:#9AA8A0;}
+  input[type=text]:focus, input[type=email]:focus, input[type=password]:focus{
+    outline:none;
+    border-color:var(--leaf);
+    box-shadow:0 0 0 3px rgba(95,167,121,0.18);
+  }
+  button{
+    font-family:'Manrope', sans-serif;
+    font-weight:700;
+    font-size:14px;
+    padding:11px 22px;
+    border-radius:10px;
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease, color .12s ease;
+  }
+  button.primary{background:var(--leaf-deep); color:#fff; box-shadow:0 2px 6px rgba(47,107,73,0.25);}
+  button.primary:hover{background:#25583B; transform:translateY(-1px); box-shadow:0 6px 14px rgba(47,107,73,0.3);}
+  button.primary:active{transform:translateY(0);}
+  button.ghost{background:var(--panel); border-color:var(--line); color:var(--ink);}
+  button.ghost:hover{border-color:var(--leaf-deep); color:var(--leaf-deep); transform:translateY(-1px);}
+  button:disabled{opacity:0.5; cursor:not-allowed; transform:none;}
+
+  .whoami{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13.5px;
+    color:var(--sub);
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:9px 14px;
+    border-radius:100px;
+  }
+  .whoami b{color:var(--leaf-deep); font-weight:700;}
+  .whoami .avatar{font-size:16px; margin-right:4px;}
+
+  .avatar-picker{
+    display:flex;
+    gap:6px;
+    align-items:center;
+  }
+  .avatar-picker button.avatar-opt{
+    font-size:18px;
+    padding:7px 10px;
+    border-radius:9px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    cursor:pointer;
+    line-height:1;
+    transition:border-color .12s ease, background .12s ease, transform .12s ease;
+  }
+  .avatar-picker button.avatar-opt:hover{transform:translateY(-1px);}
+  .avatar-picker button.avatar-opt.selected{
+    border-color:var(--leaf-deep);
+    background:var(--leaf-pale);
+  }
+
+  section{padding:56px 24px;}
+  section + section{border-top:1px solid var(--line);}
+  h2{
+    font-family:'Manrope', sans-serif;
+    font-size:25px;
+    font-weight:800;
+    letter-spacing:-0.01em;
+    margin:0 0 6px;
+    color:var(--ink);
+  }
+  .section-note{
+    color:var(--sub);
+    font-size:14.5px;
+    margin:0 0 26px;
+  }
+
+  .redeem{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:flex-start;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px;
+    box-shadow:var(--shadow);
+  }
+  .redeem input{width:220px; letter-spacing:0.08em;}
+  .msg{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    margin-top:14px;
+    padding:11px 15px;
+    border-radius:10px;
+    display:none;
+  }
+  .msg.show{display:block;}
+  .msg.ok{background:var(--leaf-pale); color:var(--leaf-deep); border:1px solid rgba(47,107,73,0.2);}
+  .msg.err{background:#FCEEEC; color:#B24A38; border:1px solid rgba(178,74,56,0.2);}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(200px,1fr));
+    gap:16px;
+  }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:22px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    transition:transform .16s ease, box-shadow .16s ease;
+  }
+  .card:hover{transform:translateY(-3px); box-shadow:var(--shadow-hover);}
+  .card::before{
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0;
+    height:3px;
+    background:linear-gradient(90deg, var(--leaf), var(--gold));
+    opacity:0;
+    transition:opacity .16s ease;
+  }
+  .card:hover::before{opacity:1;}
+  .card.locked{opacity:0.45;}
+  .card .rarity{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.04em;
+    color:var(--leaf-deep);
+    background:var(--leaf-pale);
+    display:inline-block;
+    padding:4px 9px;
+    border-radius:100px;
+    margin:0 0 14px;
+  }
+  .card .rarity.legendary{color:var(--gold); background:var(--gold-pale);}
+  .card .category{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.04em;
+    display:inline-block;
+    padding:4px 9px;
+    border-radius:100px;
+    margin:0 0 14px;
+  }
+  .card .category.fait-main{color:#8A6420; background:var(--gold-pale); border:1px solid rgba(201,154,62,0.4);}
+  .card .category.classique{color:var(--leaf-deep); background:var(--leaf-pale);}
+  .card .category.bizarre{color:#7A3FA0; background:#F1E6F7;}
+  .card .glyph{
+    font-size:36px;
+    margin-bottom:12px;
+    display:block;
+  }
+  .card .card-image{
+    width:100%;
+    aspect-ratio:4/3;
+    object-fit:cover;
+    border-radius:10px;
+    margin-bottom:12px;
+    display:block;
+    background:var(--panel);
+  }
+  .card h3{
+    font-family:'Manrope', sans-serif;
+    font-weight:700;
+    font-size:19px;
+    margin:0 0 6px;
+    color:var(--ink);
+  }
+  .card p{
+    font-size:13.5px;
+    line-height:1.55;
+    color:var(--sub);
+    margin:0 0 16px;
+  }
+  .card .serial{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:#8A968E;
+    border-top:1px solid var(--line);
+    padding-top:12px;
+    display:flex;
+    justify-content:space-between;
+  }
+  .card .serial b{color:var(--ink); font-weight:600;}
+
+  .empty{
+    border:1.5px dashed var(--line);
+    border-radius:16px;
+    padding:40px 24px;
+    text-align:center;
+    color:var(--sub);
+    font-size:14px;
+    background:var(--panel);
+  }
+
+  .devtools{
+    margin-top:32px;
+    padding:16px 18px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:var(--panel);
+  }
+  .devtools summary{
+    cursor:pointer;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--sub);
+  }
+  .devtools .codes{
+    margin-top:12px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    line-height:2;
+    color:var(--sub);
+  }
+  .devtools .codes span{
+    background:var(--panel);
+    color:var(--leaf-deep);
+    padding:3px 9px;
+    border-radius:100px;
+    margin-right:10px;
+  }
+
+  .settings-toggle{
+    margin-top:10px;
+  }
+  .settings-link{
+    background:none;
+    border:none;
+    padding:0;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color:#9AA8A0;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    cursor:pointer;
+  }
+  .settings-link:hover{color:var(--sub);}
+  .settings-form{
+    margin-top:10px;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .settings-form input{width:200px;}
+
+  .settings-menu{
+    position:relative;
+    display:inline-block;
+  }
+  .settings-menu-btn{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+    transition:border-color .15s ease, transform .15s ease;
+  }
+  .settings-menu-btn:hover{border-color:var(--leaf-deep); transform:rotate(20deg);}
+  .settings-menu-btn svg{width:19px; height:19px;}
+  .settings-menu-panel{
+    position:absolute;
+    top:48px;
+    left:0;
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow-hover);
+    padding:14px;
+    width:220px;
+    z-index:40;
+    display:none;
+  }
+  .settings-menu-panel.open{display:block;}
+  .settings-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    font-size:13.5px;
+    color:var(--ink);
+  }
+  .switch{
+    position:relative;
+    width:40px;
+    height:22px;
+    flex:none;
+  }
+  .switch input{opacity:0; width:0; height:0; position:absolute;}
+  .switch .track{
+    position:absolute; inset:0;
+    background:var(--line);
+    border-radius:100px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .switch .track::before{
+    content:'';
+    position:absolute;
+    width:16px; height:16px;
+    left:3px; top:3px;
+    background:#fff;
+    border-radius:50%;
+    transition:transform .15s ease;
+    box-shadow:0 1px 3px rgba(0,0,0,0.25);
+  }
+  .switch input:checked + .track{background:var(--leaf-deep);}
+  .switch input:checked + .track::before{transform:translateX(18px);}
+
+  .idbar-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .admin-entry{
+    position:fixed;
+    top:20px;
+    right:20px;
+    z-index:50;
+  }
+  .admin-gear-btn{
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    box-shadow:var(--shadow);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+    padding:0;
+  }
+  .admin-gear-btn:hover{
+    transform:rotate(45deg);
+    box-shadow:var(--shadow-hover);
+    background:var(--leaf-pale);
+  }
+  .admin-gear-btn svg{width:26px; height:26px; display:block;}
+  .admin-gear-btn.active{background:var(--gold-pale); border-color:rgba(201,154,62,0.4);}
+
+  .admin-entry-popover{
+    position:absolute;
+    top:64px;
+    right:0;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    box-shadow:var(--shadow-hover);
+    padding:16px;
+    width:260px;
+    display:none;
+  }
+  .admin-entry-popover.open{display:block;}
+  .admin-entry-popover .pin-form{margin-top:0; flex-direction:column; align-items:stretch;}
+  .admin-entry-popover input{width:100%;}
+  .admin-entry-popover button{width:100%;}
+  .pin-form{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top:10px;
+  }
+  .pin-form input{width:150px; letter-spacing:0.2em;}
+
+  .admin-panel{
+    margin-top:18px;
+    border:1px solid rgba(201,154,62,0.35);
+    background:var(--gold-pale);
+    border-radius:16px;
+    padding:20px;
+  }
+  .admin-panel h3{
+    font-family:'Manrope', sans-serif;
+    font-size:16px;
+    font-weight:800;
+    margin:0 0 12px;
+    color:#8A6420;
+  }
+  .admin-panel .admin-block + .admin-block{
+    margin-top:20px;
+    padding-top:20px;
+    border-top:1px solid rgba(201,154,62,0.3);
+  }
+  select{
+    font-family:'Manrope', sans-serif;
+    font-size:14px;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:var(--panel);
+    color:var(--ink);
+  }
+  table.admin-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  table.admin-table th, table.admin-table td{
+    text-align:left;
+    padding:8px 10px;
+    border-bottom:1px solid rgba(201,154,62,0.25);
+  }
+  table.admin-table th{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600;
+    color:#8A6420;
+    font-size:11px;
+    letter-spacing:0.03em;
+  }
+
+  table.leaderboard{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+  }
+  table.leaderboard th, table.leaderboard td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--line);
+  }
+  table.leaderboard th{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600;
+    color:var(--sub);
+    font-size:11px;
+    letter-spacing:0.03em;
+  }
+  table.leaderboard tr.me{background:var(--leaf-pale);}
+  table.leaderboard .rank{
+    font-family:'JetBrains Mono', monospace;
+    color:var(--sub);
+    width:32px;
+  }
+  table.leaderboard .username-cell{
+    cursor:pointer;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    text-decoration-color:var(--line);
+  }
+  table.leaderboard .username-cell:hover{text-decoration-color:var(--leaf-deep); color:var(--leaf-deep);}
+
+  .lookup-form{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+  }
+  .lookup-form input{width:200px;}
+
+  .viewed-collection{
+    margin-top:20px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+  }
+  .viewed-collection h4{
+    font-family:'Manrope', sans-serif;
+    font-size:16px;
+    font-weight:800;
+    margin:0 0 14px;
+  }
+
+  footer{
+    padding:36px 24px 52px;
+    text-align:center;
+    font-size:12.5px;
+    color:#AAB4AE;
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  @media (max-width: 640px){
+    header.hero{padding:44px 20px 36px;}
+    .wrap{padding:0 20px;}
+    section{padding:36px 20px;}
+    .hero p.lede{font-size:15.5px;}
+    .idbar{width:100%; flex-direction:column; align-items:stretch;}
+    .idbar-row{width:100%; align-items:flex-start;}
+    .settings-menu{flex:none;}
+    .settings-menu-panel{left:auto; right:0;}
+    .idbar input[type=text], .idbar input[type=email], .idbar input[type=password]{width:100%; min-width:0;}
+    .idbar button{width:100%;}
+    .avatar-picker{flex-wrap:wrap; justify-content:center;}
+    .redeem{flex-direction:column; align-items:stretch;}
+    .redeem input{width:100%;}
+    .redeem button{width:100%;}
+    .grid{grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:12px;}
+    .card{padding:16px;}
+    .card .glyph{font-size:28px; margin-bottom:10px;}
+    .card h3{font-size:17px;}
+    .whoami{display:block; margin-bottom:8px;}
+    .admin-entry{top:14px; right:14px;}
+    .admin-gear-btn{width:44px; height:44px;}
+    .admin-gear-btn svg{width:22px; height:22px;}
+    .admin-entry-popover{width:min(78vw, 260px); top:54px;}
+  }
+
+  @media (max-width: 400px){
+    .grid{grid-template-columns:1fr 1fr;}
+  }
+</style>
+<script>
+  // Applique le thème sauvegardé avant le rendu, pour éviter un flash blanc/sombre
+  (function(){
+    try {
+      const saved = localStorage.getItem('allermain-theme');
+      if(saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    } catch(e){}
+  })();
+</script>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">CARNET DE TERRAIN — ÉD. 01</p>
+    <h1>Allermain</h1>
+    <p class="lede">Une collection de cartes pour cartographier les allergènes qui comptent pour toi. Chaque exemplaire physique porte un code à sept chiffres — entre-le ici pour le faire entrer dans ta collection.</p>
+    <div class="idbar-row">
+      <div class="idbar" id="idbar"></div>
+      <div class="settings-menu" id="settingsMenu">
+        <button type="button" class="settings-menu-btn" id="settingsMenuBtn" aria-label="Paramètres" title="Paramètres">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2F6B49" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"></line>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+            <line x1="4" y1="18" x2="20" y2="18"></line>
+            <circle cx="9" cy="6" r="2" fill="#2F6B49"></circle>
+            <circle cx="16" cy="12" r="2" fill="#2F6B49"></circle>
+            <circle cx="10" cy="18" r="2" fill="#2F6B49"></circle>
+          </svg>
+        </button>
+        <div class="settings-menu-panel" id="settingsMenuPanel">
+          <div class="settings-row">
+            <span>Mode sombre</span>
+            <label class="switch">
+              <input type="checkbox" id="darkModeToggle">
+              <span class="track"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="publicAdminZone"></div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Débloquer une carte</h2>
+    <p class="section-note">Saisis le code à 7 chiffres imprimé sur ta carte.</p>
+    <div class="redeem">
+      <input type="text" id="codeInput" placeholder="0000000" maxlength="7" inputmode="numeric">
+      <button class="primary" id="redeemBtn">Débloquer</button>
+    </div>
+    <div class="msg" id="redeemMsg"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Ta collection</h2>
+    <p class="section-note" id="collectionNote"></p>
+    <div class="grid" id="collectionGrid"></div>
+
+    <details class="devtools">
+      <summary>Codes de test (à retirer en prod)</summary>
+      <div class="codes" id="testCodes"></div>
+    </details>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Classement</h2>
+    <p class="section-note">Ouvert à tous, même sans être connecté.</p>
+    <div id="leaderboardTable">Chargement…</div>
+
+    <div class="viewed-collection">
+      <h4>Voir la collection de quelqu'un</h4>
+      <div class="lookup-form">
+        <input type="text" id="lookupUsername" placeholder="pseudo" autocomplete="off">
+        <button class="ghost" id="lookupBtn">Voir</button>
+      </div>
+      <div class="msg" id="lookupMsg"></div>
+      <div id="lookupResult"></div>
+    </div>
+  </div>
+</section>
+
+<footer>Allermain — projet perso, v1 (connecté à Supabase).</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+  // --- Config Supabase ---
+  const SUPABASE_URL = 'https://ptujuyctoapckraxaurq.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0dWp1eWN0b2FwY2tyYXhhdXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MzU2MjEsImV4cCI6MjEwNDUxMTYyMX0.3e4Q4XUPPsn9Px-6ITtOfItlnbxjsI2XAIcS4FElcIw';
+
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const AVATAR_OPTIONS = ['🌿','🦊','🐝','🌻','🍃','🐌','🌼','🦔'];
+  let chosenAvatar = AVATAR_OPTIONS[0];
+
+  let session = null;
+  let profile = null; // { id, username, avatar, role }
+  let cardModels = {}; // id -> model
+  let collection = []; // rows from card_codes
+  let adminUnlocked = false;
+  let adminPin = null;        // code à 8 chiffres en mémoire, une fois vérifié
+  let adminIdentity = null;   // { username, avatar }
+
+  const publicAdminZone = document.getElementById('publicAdminZone');
+  const leaderboardTable = document.getElementById('leaderboardTable');
+
+  const idbar = document.getElementById('idbar');
+  const grid = document.getElementById('collectionGrid');
+  const note = document.getElementById('collectionNote');
+  const testCodes = document.getElementById('testCodes');
+  const redeemBtn = document.getElementById('redeemBtn');
+  const codeInput = document.getElementById('codeInput');
+  const redeemMsg = document.getElementById('redeemMsg');
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function categoryLabel(cat){
+    return { 'fait-main': 'FAIT MAIN', 'classique': 'CLASSIQUE', 'bizarre': 'BIZARRE' }[cat] || 'CLASSIQUE';
+  }
+
+  // ---------- Auth UI ----------
+
+  function renderIdbar(){
+    if(!session){
+      idbar.innerHTML = `
+        <input type="text" id="userInput" placeholder="pseudo" maxlength="24">
+        <div class="avatar-picker" id="avatarPicker"></div>
+        <input type="email" id="emailInput" placeholder="email">
+        <input type="password" id="passInput" placeholder="mot de passe">
+        <button class="primary" id="loginBtn">Se connecter</button>
+        <button class="ghost" id="signupBtn">Créer un compte</button>
+      `;
+      const picker = document.getElementById('avatarPicker');
+      picker.innerHTML = AVATAR_OPTIONS.map(a =>
+        `<button type="button" class="avatar-opt${a===chosenAvatar?' selected':''}" data-avatar="${a}">${a}</button>`
+      ).join('');
+      picker.querySelectorAll('.avatar-opt').forEach(btn => {
+        btn.onclick = () => {
+          chosenAvatar = btn.dataset.avatar;
+          picker.querySelectorAll('.avatar-opt').forEach(b => b.classList.toggle('selected', b === btn));
+        };
+      });
+      document.getElementById('loginBtn').onclick = () => authAction('signInWithPassword');
+      document.getElementById('signupBtn').onclick = () => authAction('signUp');
+    } else {
+      const label = profile ? `${profile.avatar} ${escapeHtml(profile.username)}` : escapeHtml(session.user.email);
+      idbar.innerHTML = `<span class="whoami">Connecté comme <b>${label}</b></span> <button class="ghost" id="logoutBtn">Se déconnecter</button>`;
+      document.getElementById('logoutBtn').onclick = async () => {
+        await sb.auth.signOut();
+      };
+    }
+  }
+
+  async function authAction(method){
+    const email = document.getElementById('emailInput').value.trim();
+    const password = document.getElementById('passInput').value;
+    const username = document.getElementById('userInput').value.trim();
+    redeemMsg.className = 'msg show';
+    if(!email || !password){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Renseigne un email et un mot de passe.';
+      return;
+    }
+    if(method === 'signUp' && !username){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Choisis un pseudo pour créer ton compte.';
+      return;
+    }
+    const { data, error } = await sb.auth[method]({ email, password });
+    if(error){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = error.message.includes('already registered')
+        ? 'Un compte existe déjà avec cet email — connecte-toi plutôt.'
+        : error.message;
+      return;
+    }
+    if(method === 'signUp'){
+      // Crée le profil associé (pseudo + avatar) si la session est déjà active
+      // (si la confirmation par email est activée, ceci se fera à la première connexion)
+      if(data.user){
+        const { error: profileError } = await sb.from('profiles').insert({
+          id: data.user.id,
+          username,
+          avatar: chosenAvatar
+        });
+        if(profileError && profileError.code === '23505'){
+          redeemMsg.classList.add('err');
+          redeemMsg.textContent = 'Ce pseudo est déjà pris, choisis-en un autre.';
+          return;
+        }
+      }
+      redeemMsg.classList.remove('err');
+      redeemMsg.classList.add('ok');
+      redeemMsg.textContent = 'Compte créé. Vérifie ta boîte mail si une confirmation est requise, puis connecte-toi.';
+    } else {
+      redeemMsg.className = 'msg';
+    }
+  }
+
+  // ---------- Data ----------
+
+  async function loadProfile(){
+    if(!session){ profile = null; return; }
+    const { data, error } = await sb
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    profile = error ? null : data;
+  }
+
+  async function loadCardModels(){
+    const { data, error } = await sb.from('card_models').select('*');
+    if(error){
+      console.error('loadCardModels error:', error);
+      return;
+    }
+    cardModels = {};
+    (data || []).forEach(m => cardModels[m.id] = m);
+  }
+
+  async function loadCollection(){
+    if(!session){ collection = []; return; }
+    const { data, error } = await sb.rpc('my_collection', { p_user_id: session.user.id });
+    collection = error ? [] : data;
+  }
+
+  async function loadTestCodes(){
+    const { data, error } = await sb
+      .from('card_codes')
+      .select('code, model_id')
+      .is('claimed_by', null)
+      .limit(20);
+    if(error){ testCodes.innerHTML = ''; return; }
+    testCodes.innerHTML = (data || []).map(row => {
+      const m = cardModels[row.model_id];
+      return `<div><span>${row.code}</span>${m ? m.name : row.model_id}</div>`;
+    }).join('') || '<div>Aucun code disponible pour l’instant.</div>';
+  }
+
+  function renderCollection(){
+    if(!session){
+      note.textContent = 'Connecte-toi pour voir ou démarrer ta collection.';
+      grid.innerHTML = `<div class="empty">Aucune session active.</div>`;
+      return;
+    }
+    if(collection.length === 0){
+      note.textContent = 'Rien encore débloqué — entre un code ci-dessus pour commencer.';
+      grid.innerHTML = `<div class="empty">Ta collection est vide pour l’instant.</div>`;
+      return;
+    }
+    note.textContent = `${collection.length} carte${collection.length>1?'s':''} débloquée${collection.length>1?'s':''}.`;
+    grid.innerHTML = collection.map(entry => {
+      const m = cardModels[entry.model_id];
+      if(!m) return '';
+      return `
+        <div class="card">
+          <p class="category ${m.category || 'classique'}">${categoryLabel(m.category)}</p>
+          ${m.image_url
+            ? `<img class="card-image" data-fallback-glyph="${escapeHtml(m.glyph)}" src="${escapeHtml(m.image_url)}" alt="${escapeHtml(m.name)}">`
+            : `<span class="glyph">${m.glyph}</span>`}
+          <h3>${escapeHtml(m.name)}</h3>
+          <p>${escapeHtml(m.description)}</p>
+          <div class="serial"><span>N° série</span><b>${entry.code}</b></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---------- Redeem ----------
+
+  redeemBtn.onclick = async () => {
+    const code = codeInput.value.trim();
+    redeemMsg.className = 'msg show';
+
+    if(!session){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Connecte-toi d’abord.';
+      return;
+    }
+    if(!/^\d{7}$/.test(code)){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Le code doit contenir exactement 7 chiffres.';
+      return;
+    }
+
+    // Passe par une fonction sécurisée côté base, qui vérifie elle-même
+    // l'identité de l'appelant plutôt que de dépendre d'une policy RLS.
+    const { data, error } = await sb.rpc('redeem_card_code', { p_code: code, p_user_id: session.user.id });
+
+    if(error){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Erreur : ' + error.message;
+      return;
+    }
+    if(!data || data.length === 0){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Code invalide ou déjà utilisé par quelqu’un.';
+      return;
+    }
+
+    codeInput.value = '';
+    redeemMsg.classList.remove('err');
+    redeemMsg.classList.add('ok');
+    const m = cardModels[data[0].model_id];
+    redeemMsg.textContent = `Carte débloquée : ${m ? m.name : data[0].model_id}.`;
+    await loadCollection();
+    await loadTestCodes();
+    renderCollection();
+    renderPublicAdminEntry();
+    loadLeaderboard();
+  };
+
+  codeInput.addEventListener('keydown', e => { if(e.key === 'Enter') redeemBtn.click(); });
+
+  // ---------- Admin : point d'entrée public (pas besoin d'être connecté) ----------
+
+  function renderPublicAdminEntry(){
+    if(adminUnlocked){
+      publicAdminZone.innerHTML = '';
+      renderAdminPanel();
+      return;
+    }
+    publicAdminZone.innerHTML = `
+      <div class="admin-entry">
+        <button type="button" class="admin-gear-btn" id="adminEntryToggle" aria-label="Espace admin" title="Espace admin">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2F6B49" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+        <div class="admin-entry-popover" id="adminEntryForm">
+          <p class="section-note" style="margin-bottom:8px;">Espace admin</p>
+          <div class="pin-form">
+            <input type="password" id="publicPinInput" placeholder="code admin (8 chiffres)" maxlength="8" inputmode="numeric" autocomplete="off">
+            <button class="primary" id="publicUnlockBtn">Se connecter</button>
+          </div>
+          <div class="msg" id="publicAdminMsg"></div>
+        </div>
+      </div>
+    `;
+    const gearBtn = document.getElementById('adminEntryToggle');
+    const popover = document.getElementById('adminEntryForm');
+    gearBtn.onclick = () => {
+      popover.classList.toggle('open');
+      gearBtn.classList.toggle('active', popover.classList.contains('open'));
+      if(popover.classList.contains('open')) document.getElementById('publicPinInput').focus();
+    };
+    document.getElementById('publicUnlockBtn').onclick = unlockPublicAdmin;
+    document.getElementById('publicPinInput').addEventListener('keydown', e => { if(e.key === 'Enter') unlockPublicAdmin(); });
+  }
+
+  async function unlockPublicAdmin(){
+    const pin = document.getElementById('publicPinInput').value.trim();
+    const msg = document.getElementById('publicAdminMsg');
+    msg.className = 'msg show';
+    if(!/^\d{8}$/.test(pin)){
+      msg.classList.add('err');
+      msg.textContent = 'Le code admin doit contenir exactement 8 chiffres.';
+      return;
+    }
+    const { data, error } = await sb.rpc('admin_unlock', { pin });
+    if(error){
+      msg.classList.add('err');
+      msg.textContent = 'Erreur : ' + error.message;
+      return;
+    }
+    if(!data || data.length === 0){
+      msg.classList.add('err');
+      msg.textContent = 'Code admin incorrect.';
+      return;
+    }
+    adminPin = pin;
+    adminIdentity = data[0];
+    adminUnlocked = true;
+    renderPublicAdminEntry();
+  }
+
+  async function renderAdminPanel(){
+    await loadCardModels();
+    publicAdminZone.innerHTML = `
+      <div class="admin-panel">
+        <h3>Panneau admin — ${adminIdentity.avatar} ${escapeHtml(adminIdentity.username)}</h3>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Créer une nouvelle carte</p>
+          <div class="pin-form" style="flex-direction:column; align-items:stretch; gap:8px;">
+            <input type="text" id="newCardId" placeholder="identifiant unique (ex: noix)" autocomplete="off">
+            <input type="text" id="newCardName" placeholder="nom affiché (ex: Noix de cajou)" autocomplete="off">
+            <select id="newCardCategory">
+              <option value="classique">Classique</option>
+              <option value="bizarre">Bizarre (style Uranium)</option>
+              <option value="fait-main">Fait main (la plus rare — croquis original)</option>
+            </select>
+            <input type="text" id="newCardGlyph" placeholder="emoji (ex: 🥜)" maxlength="4" autocomplete="off">
+            <input type="text" id="newCardDesc" placeholder="petite description" autocomplete="off">
+            <button class="primary" id="createCardBtn">Créer la carte</button>
+          </div>
+          <div class="msg" id="createCardMsg"></div>
+        </div>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Générer un nouveau code pour une carte existante</p>
+          <div class="pin-form" style="flex-direction:column; align-items:stretch; gap:8px;">
+            <select id="newCodeModel"></select>
+            <input type="text" id="newCodeCustom" placeholder="code à 7 chiffres (laisser vide = aléatoire)" maxlength="7" inputmode="numeric" autocomplete="off">
+            <button class="primary" id="genCodeBtn">Générer un code</button>
+          </div>
+          <div class="msg" id="genCodeMsg"></div>
+        </div>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Changer mon code admin</p>
+          <div class="pin-form">
+            <input type="password" id="changePinInput" placeholder="nouveau code (8 chiffres)" maxlength="8" inputmode="numeric" autocomplete="new-password">
+            <button class="ghost" id="changePinBtn">Mettre à jour</button>
+          </div>
+          <div class="msg" id="changePinMsg"></div>
+        </div>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Collectionneurs</p>
+          <div id="adminUsersTable">Chargement…</div>
+        </div>
+
+        <div class="admin-block">
+          <button type="button" class="ghost" id="adminLogoutBtn">Fermer le panneau admin</button>
+        </div>
+      </div>
+    `;
+
+    const select = document.getElementById('newCodeModel');
+    const modelList = Object.values(cardModels);
+    if(modelList.length === 0){
+      select.innerHTML = `<option value="">Aucune carte disponible</option>`;
+      select.disabled = true;
+      document.getElementById('genCodeBtn').disabled = true;
+    } else {
+      select.innerHTML = modelList.map(m => `<option value="${m.id}">${m.glyph} ${escapeHtml(m.name)}</option>`).join('');
+    }
+
+    document.getElementById('genCodeBtn').onclick = async () => {
+      const modelId = select.value;
+      const customCode = document.getElementById('newCodeCustom').value.trim();
+      const genMsg = document.getElementById('genCodeMsg');
+      genMsg.className = 'msg show';
+      if(!modelId){
+        genMsg.classList.add('err');
+        genMsg.textContent = 'Aucune carte disponible à associer — vérifie la table card_models.';
+        return;
+      }
+      if(customCode && !/^\d{7}$/.test(customCode)){
+        genMsg.classList.add('err');
+        genMsg.textContent = 'Le code personnalisé doit contenir exactement 7 chiffres.';
+        return;
+      }
+      const { data, error } = await sb.rpc('admin_generate_code', {
+        pin: adminPin,
+        p_model_id: modelId,
+        p_code: customCode || null
+      });
+      if(error){
+        genMsg.classList.add('err');
+        genMsg.textContent = error.message.includes('already exists')
+          ? 'Ce code existe déjà, choisis-en un autre.'
+          : 'Erreur : ' + error.message;
+        return;
+      }
+      genMsg.classList.remove('err');
+      genMsg.classList.add('ok');
+      genMsg.textContent = `Nouveau code généré : ${data}`;
+      document.getElementById('newCodeCustom').value = '';
+      await loadTestCodes();
+    };
+
+    document.getElementById('createCardBtn').onclick = async () => {
+      const id = document.getElementById('newCardId').value.trim().toLowerCase().replace(/\s+/g, '-');
+      const name = document.getElementById('newCardName').value.trim();
+      const category = document.getElementById('newCardCategory').value;
+      const glyph = document.getElementById('newCardGlyph').value.trim() || '🃏';
+      const description = document.getElementById('newCardDesc').value.trim();
+      const createMsg = document.getElementById('createCardMsg');
+      createMsg.className = 'msg show';
+
+      if(!id || !name){
+        createMsg.classList.add('err');
+        createMsg.textContent = 'L\'identifiant et le nom sont obligatoires.';
+        return;
+      }
+
+      const { error } = await sb.rpc('admin_create_card_model', {
+        pin: adminPin,
+        p_id: id,
+        p_name: name,
+        p_glyph: glyph,
+        p_description: description,
+        p_category: category
+      });
+      if(error){
+        createMsg.classList.add('err');
+        createMsg.textContent = error.message.includes('duplicate key')
+          ? 'Cet identifiant de carte existe déjà, choisis-en un autre.'
+          : 'Erreur : ' + error.message;
+        return;
+      }
+
+      createMsg.classList.remove('err');
+      createMsg.classList.add('ok');
+      createMsg.textContent = `Carte "${name}" créée.`;
+      document.getElementById('newCardId').value = '';
+      document.getElementById('newCardName').value = '';
+      document.getElementById('newCardGlyph').value = '';
+      document.getElementById('newCardDesc').value = '';
+
+      // Rafraîchit le menu "générer un code" avec la nouvelle carte incluse
+      await loadCardModels();
+      const refreshedList = Object.values(cardModels);
+      select.innerHTML = refreshedList.map(m => `<option value="${m.id}">${m.glyph} ${escapeHtml(m.name)}</option>`).join('');
+      select.disabled = false;
+      document.getElementById('genCodeBtn').disabled = false;
+      await loadTestCodes();
+    };
+
+    document.getElementById('changePinBtn').onclick = async () => {
+      const newPin = document.getElementById('changePinInput').value.trim();
+      const changeMsg = document.getElementById('changePinMsg');
+      changeMsg.className = 'msg show';
+      if(!/^\d{8}$/.test(newPin)){
+        changeMsg.classList.add('err');
+        changeMsg.textContent = 'Le code doit contenir exactement 8 chiffres.';
+        return;
+      }
+      const { error } = await sb.rpc('admin_change_pin', { old_pin: adminPin, new_pin: newPin });
+      if(error){
+        changeMsg.classList.add('err');
+        changeMsg.textContent = 'Erreur : ' + error.message;
+        return;
+      }
+      adminPin = newPin;
+      changeMsg.classList.remove('err');
+      changeMsg.classList.add('ok');
+      changeMsg.textContent = 'Code mis à jour.';
+      document.getElementById('changePinInput').value = '';
+    };
+
+    document.getElementById('adminLogoutBtn').onclick = () => {
+      adminUnlocked = false;
+      adminPin = null;
+      adminIdentity = null;
+      renderPublicAdminEntry();
+    };
+
+    const usersDiv = document.getElementById('adminUsersTable');
+    const { data: rows, error: listErr } = await sb.rpc('admin_list_collectors', { pin: adminPin });
+    if(listErr){
+      usersDiv.textContent = 'Impossible de charger la liste.';
+      return;
+    }
+    usersDiv.innerHTML = `
+      <table class="admin-table">
+        <thead><tr><th>Collectionneur</th><th>Cartes</th></tr></thead>
+        <tbody>
+          ${rows.map(r => `<tr><td>${r.avatar} ${escapeHtml(r.username)}</td><td>${r.card_count}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  // ---------- Classement public + collection d'un autre ----------
+
+  async function loadLeaderboard(){
+    const { data, error } = await sb.rpc('public_leaderboard');
+    if(error){
+      leaderboardTable.innerHTML = 'Impossible de charger le classement.';
+      return;
+    }
+    if(!data || data.length === 0){
+      leaderboardTable.innerHTML = '<div class="empty">Personne n\'a encore débloqué de carte.</div>';
+      return;
+    }
+    const myUsername = profile ? profile.username : null;
+    leaderboardTable.innerHTML = `
+      <table class="leaderboard">
+        <thead><tr><th></th><th>Collectionneur</th><th>Cartes</th></tr></thead>
+        <tbody>
+          ${data.map((r, i) => `
+            <tr class="${r.username === myUsername ? 'me' : ''}">
+              <td class="rank">#${i + 1}</td>
+              <td class="username-cell" data-username="${escapeHtml(r.username)}">${r.avatar} ${escapeHtml(r.username)}</td>
+              <td>${r.card_count}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    leaderboardTable.querySelectorAll('.username-cell').forEach(cell => {
+      cell.onclick = () => {
+        document.getElementById('lookupUsername').value = cell.dataset.username;
+        lookupCollection();
+      };
+    });
+  }
+
+  async function lookupCollection(){
+    const username = document.getElementById('lookupUsername').value.trim();
+    const msg = document.getElementById('lookupMsg');
+    const result = document.getElementById('lookupResult');
+    msg.className = 'msg show';
+    result.innerHTML = '';
+    if(!username){
+      msg.classList.add('err');
+      msg.textContent = 'Entre un pseudo.';
+      return;
+    }
+    if(cardModels && Object.keys(cardModels).length === 0){
+      await loadCardModels();
+    }
+    const { data, error } = await sb.rpc('view_collection', { p_username: username });
+    if(error){
+      msg.classList.add('err');
+      msg.textContent = 'Erreur : ' + error.message;
+      return;
+    }
+    if(!data || data.length === 0){
+      msg.classList.add('err');
+      msg.textContent = `${escapeHtml(username)} n'a encore rien débloqué (ou ce pseudo n'existe pas).`;
+      return;
+    }
+    msg.className = 'msg';
+    result.innerHTML = `
+      <div class="grid" style="margin-top:14px;">
+        ${data.map(row => {
+          const m = cardModels[row.model_id];
+          if(!m) return '';
+          return `
+            <div class="card">
+              <p class="category ${m.category || 'classique'}">${categoryLabel(m.category)}</p>
+              <span class="glyph">${m.glyph}</span>
+              <h3>${escapeHtml(m.name)}</h3>
+              <p>${escapeHtml(m.description)}</p>
+              <div class="serial"><span>Exemplaires</span><b>×${row.count}</b></div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  document.getElementById('lookupBtn').onclick = lookupCollection;
+  document.getElementById('lookupUsername').addEventListener('keydown', e => { if(e.key === 'Enter') lookupCollection(); });
+
+  // ---------- Menu paramètres (mode sombre) ----------
+
+  const settingsMenuBtn = document.getElementById('settingsMenuBtn');
+  const settingsMenuPanel = document.getElementById('settingsMenuPanel');
+  const darkModeToggle = document.getElementById('darkModeToggle');
+
+  settingsMenuBtn.onclick = () => {
+    settingsMenuPanel.classList.toggle('open');
+  };
+  document.addEventListener('click', (e) => {
+    if(!document.getElementById('settingsMenu').contains(e.target)){
+      settingsMenuPanel.classList.remove('open');
+    }
+  });
+
+  darkModeToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
+  darkModeToggle.onchange = () => {
+    if(darkModeToggle.checked){
+      document.documentElement.setAttribute('data-theme', 'dark');
+      try { localStorage.setItem('allermain-theme', 'dark'); } catch(e){}
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      try { localStorage.setItem('allermain-theme', 'light'); } catch(e){}
+    }
+  };
+
+  // ---------- Boot ----------
+
+  sb.auth.onAuthStateChange(async (_event, newSession) => {
+    session = newSession;
+    adminUnlocked = false;
+    await loadProfile();
+    renderIdbar();
+    await loadCollection();
+    await loadTestCodes();
+    renderCollection();
+    renderPublicAdminEntry();
+    loadLeaderboard();
+  });
+
+  (async () => {
+    const { data } = await sb.auth.getSession();
+    session = data.session;
+    await loadCardModels();
+    await loadProfile();
+    renderIdbar();
+    await loadCollection();
+    await loadTestCodes();
+    renderCollection();
+    renderPublicAdminEntry();
+    loadLeaderboard();
+  })();
+})();
+</script>
+
+</body>
+</html>
     --leaf:#5FA779;
     --leaf-deep:#2F6B49;
     --leaf-pale:#E3F2E7;
