@@ -440,6 +440,57 @@
     letter-spacing:0.03em;
   }
 
+  table.leaderboard{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+  }
+  table.leaderboard th, table.leaderboard td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--line);
+  }
+  table.leaderboard th{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600;
+    color:var(--sub);
+    font-size:11px;
+    letter-spacing:0.03em;
+  }
+  table.leaderboard tr.me{background:var(--leaf-pale);}
+  table.leaderboard .rank{
+    font-family:'JetBrains Mono', monospace;
+    color:var(--sub);
+    width:32px;
+  }
+  table.leaderboard .username-cell{
+    cursor:pointer;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    text-decoration-color:var(--line);
+  }
+  table.leaderboard .username-cell:hover{text-decoration-color:var(--leaf-deep); color:var(--leaf-deep);}
+
+  .lookup-form{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+  }
+  .lookup-form input{width:200px;}
+
+  .viewed-collection{
+    margin-top:20px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+  }
+  .viewed-collection h4{
+    font-family:'Manrope', sans-serif;
+    font-size:16px;
+    font-weight:800;
+    margin:0 0 14px;
+  }
+
   footer{
     padding:36px 24px 52px;
     text-align:center;
@@ -513,6 +564,24 @@
   </div>
 </section>
 
+<section>
+  <div class="wrap">
+    <h2>Classement</h2>
+    <p class="section-note">Ouvert à tous, même sans être connecté.</p>
+    <div id="leaderboardTable">Chargement…</div>
+
+    <div class="viewed-collection">
+      <h4>Voir la collection de quelqu'un</h4>
+      <div class="lookup-form">
+        <input type="text" id="lookupUsername" placeholder="pseudo" autocomplete="off">
+        <button class="ghost" id="lookupBtn">Voir</button>
+      </div>
+      <div class="msg" id="lookupMsg"></div>
+      <div id="lookupResult"></div>
+    </div>
+  </div>
+</section>
+
 <footer>Allermain — projet perso, v1 (connecté à Supabase).</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -536,6 +605,7 @@
   let adminIdentity = null;   // { username, avatar }
 
   const publicAdminZone = document.getElementById('publicAdminZone');
+  const leaderboardTable = document.getElementById('leaderboardTable');
 
   const idbar = document.getElementById('idbar');
   const grid = document.getElementById('collectionGrid');
@@ -743,6 +813,7 @@
     await loadTestCodes();
     renderCollection();
     renderPublicAdminEntry();
+    loadLeaderboard();
   };
 
   codeInput.addEventListener('keydown', e => { if(e.key === 'Enter') redeemBtn.click(); });
@@ -999,6 +1070,89 @@
     `;
   }
 
+  // ---------- Classement public + collection d'un autre ----------
+
+  async function loadLeaderboard(){
+    const { data, error } = await sb.rpc('public_leaderboard');
+    if(error){
+      leaderboardTable.innerHTML = 'Impossible de charger le classement.';
+      return;
+    }
+    if(!data || data.length === 0){
+      leaderboardTable.innerHTML = '<div class="empty">Personne n\'a encore débloqué de carte.</div>';
+      return;
+    }
+    const myUsername = profile ? profile.username : null;
+    leaderboardTable.innerHTML = `
+      <table class="leaderboard">
+        <thead><tr><th></th><th>Collectionneur</th><th>Cartes</th></tr></thead>
+        <tbody>
+          ${data.map((r, i) => `
+            <tr class="${r.username === myUsername ? 'me' : ''}">
+              <td class="rank">#${i + 1}</td>
+              <td class="username-cell" data-username="${escapeHtml(r.username)}">${r.avatar} ${escapeHtml(r.username)}</td>
+              <td>${r.card_count}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    leaderboardTable.querySelectorAll('.username-cell').forEach(cell => {
+      cell.onclick = () => {
+        document.getElementById('lookupUsername').value = cell.dataset.username;
+        lookupCollection();
+      };
+    });
+  }
+
+  async function lookupCollection(){
+    const username = document.getElementById('lookupUsername').value.trim();
+    const msg = document.getElementById('lookupMsg');
+    const result = document.getElementById('lookupResult');
+    msg.className = 'msg show';
+    result.innerHTML = '';
+    if(!username){
+      msg.classList.add('err');
+      msg.textContent = 'Entre un pseudo.';
+      return;
+    }
+    if(cardModels && Object.keys(cardModels).length === 0){
+      await loadCardModels();
+    }
+    const { data, error } = await sb.rpc('view_collection', { p_username: username });
+    if(error){
+      msg.classList.add('err');
+      msg.textContent = 'Erreur : ' + error.message;
+      return;
+    }
+    if(!data || data.length === 0){
+      msg.classList.add('err');
+      msg.textContent = `${escapeHtml(username)} n'a encore rien débloqué (ou ce pseudo n'existe pas).`;
+      return;
+    }
+    msg.className = 'msg';
+    result.innerHTML = `
+      <div class="grid" style="margin-top:14px;">
+        ${data.map(row => {
+          const m = cardModels[row.model_id];
+          if(!m) return '';
+          return `
+            <div class="card">
+              <p class="category ${m.category || 'classique'}">${categoryLabel(m.category)}</p>
+              <span class="glyph">${m.glyph}</span>
+              <h3>${escapeHtml(m.name)}</h3>
+              <p>${escapeHtml(m.description)}</p>
+              <div class="serial"><span>Exemplaires</span><b>×${row.count}</b></div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  document.getElementById('lookupBtn').onclick = lookupCollection;
+  document.getElementById('lookupUsername').addEventListener('keydown', e => { if(e.key === 'Enter') lookupCollection(); });
+
   // ---------- Boot ----------
 
   sb.auth.onAuthStateChange(async (_event, newSession) => {
@@ -1010,6 +1164,7 @@
     await loadTestCodes();
     renderCollection();
     renderPublicAdminEntry();
+    loadLeaderboard();
   });
 
   (async () => {
@@ -1022,6 +1177,7 @@
     await loadTestCodes();
     renderCollection();
     renderPublicAdminEntry();
+    loadLeaderboard();
   })();
 })();
 </script>
