@@ -559,7 +559,6 @@
     <h1>Allermain</h1>
     <p class="lede">Une collection de cartes pour cartographier les allergènes qui comptent pour toi. Chaque exemplaire physique porte un code à sept chiffres — entre-le ici pour le faire entrer dans ta collection.</p>
     <div class="idbar" id="idbar"></div>
-    <div id="settingsZone"></div>
     <div id="publicAdminZone"></div>
   </div>
 </header>
@@ -631,7 +630,6 @@
 
   const publicAdminZone = document.getElementById('publicAdminZone');
   const leaderboardTable = document.getElementById('leaderboardTable');
-  const settingsZone = document.getElementById('settingsZone');
 
   const idbar = document.getElementById('idbar');
   const grid = document.getElementById('collectionGrid');
@@ -861,6 +859,15 @@
           </svg>
         </button>
         <div class="admin-entry-popover" id="adminEntryForm">
+          ${session ? `
+            <div class="settings-form" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--line); flex-direction:column; align-items:stretch;">
+              <p class="section-note" style="margin-bottom:8px;">Mon téléphone</p>
+              <input type="tel" id="phoneInput" placeholder="numéro de téléphone" value="${profile && profile.phone ? escapeHtml(profile.phone) : ''}" autocomplete="off">
+              <button class="ghost" id="savePhoneBtn" style="margin-top:8px;">Enregistrer</button>
+              <div class="msg" id="settingsMsg"></div>
+            </div>
+          ` : ''}
+          <p class="section-note" style="margin-bottom:8px;">Espace admin</p>
           <div class="pin-form">
             <input type="password" id="publicPinInput" placeholder="code admin (8 chiffres)" maxlength="8" inputmode="numeric" autocomplete="off">
             <button class="primary" id="publicUnlockBtn">Se connecter</button>
@@ -869,6 +876,23 @@
         </div>
       </div>
     `;
+    if(session){
+      document.getElementById('savePhoneBtn').onclick = async () => {
+        const phone = document.getElementById('phoneInput').value.trim();
+        const msg = document.getElementById('settingsMsg');
+        msg.className = 'msg show';
+        const { error } = await sb.rpc('update_my_phone', { p_phone: phone });
+        if(error){
+          msg.classList.add('err');
+          msg.textContent = 'Erreur : ' + error.message;
+          return;
+        }
+        msg.classList.remove('err');
+        msg.classList.add('ok');
+        msg.textContent = 'Numéro enregistré.';
+        await loadProfile();
+      };
+    }
     const gearBtn = document.getElementById('adminEntryToggle');
     const popover = document.getElementById('adminEntryForm');
     gearBtn.onclick = () => {
@@ -1096,44 +1120,6 @@
     `;
   }
 
-  // ---------- Paramètres (téléphone) ----------
-
-  function renderSettings(){
-    if(!session){
-      settingsZone.innerHTML = '';
-      return;
-    }
-    settingsZone.innerHTML = `
-      <div class="settings-toggle">
-        <button type="button" class="settings-link" id="settingsToggle">Paramètres</button>
-        <div class="settings-form" id="settingsForm" style="display:none;">
-          <input type="tel" id="phoneInput" placeholder="numéro de téléphone" value="${profile && profile.phone ? escapeHtml(profile.phone) : ''}" autocomplete="off">
-          <button class="ghost" id="savePhoneBtn">Enregistrer</button>
-        </div>
-        <div class="msg" id="settingsMsg"></div>
-      </div>
-    `;
-    document.getElementById('settingsToggle').onclick = () => {
-      const form = document.getElementById('settingsForm');
-      form.style.display = form.style.display === 'none' ? 'flex' : 'none';
-    };
-    document.getElementById('savePhoneBtn').onclick = async () => {
-      const phone = document.getElementById('phoneInput').value.trim();
-      const msg = document.getElementById('settingsMsg');
-      msg.className = 'msg show';
-      const { error } = await sb.rpc('update_my_phone', { p_phone: phone });
-      if(error){
-        msg.classList.add('err');
-        msg.textContent = 'Erreur : ' + error.message;
-        return;
-      }
-      msg.classList.remove('err');
-      msg.classList.add('ok');
-      msg.textContent = 'Numéro enregistré.';
-      await loadProfile();
-    };
-  }
-
   // ---------- Classement public + collection d'un autre ----------
 
   async function loadLeaderboard(){
@@ -1224,7 +1210,6 @@
     adminUnlocked = false;
     await loadProfile();
     renderIdbar();
-    renderSettings();
     await loadCollection();
     await loadTestCodes();
     renderCollection();
@@ -1238,7 +1223,6 @@
     await loadCardModels();
     await loadProfile();
     renderIdbar();
-    renderSettings();
     await loadCollection();
     await loadTestCodes();
     renderCollection();
