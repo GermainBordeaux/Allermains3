@@ -270,6 +270,15 @@
     margin-bottom:12px;
     display:block;
   }
+  .card .card-image{
+    width:100%;
+    aspect-ratio:4/3;
+    object-fit:cover;
+    border-radius:10px;
+    margin-bottom:12px;
+    display:block;
+    background:var(--panel);
+  }
   .card h3{
     font-family:'Manrope', sans-serif;
     font-weight:700;
@@ -647,10 +656,7 @@
 
   async function loadCollection(){
     if(!session){ collection = []; return; }
-    const { data, error } = await sb
-      .from('card_codes')
-      .select('*')
-      .eq('claimed_by', session.user.id);
+    const { data, error } = await sb.rpc('my_collection');
     collection = error ? [] : data;
   }
 
@@ -685,7 +691,9 @@
       return `
         <div class="card">
           <p class="category ${m.category || 'classique'}">${categoryLabel(m.category)}</p>
-          <span class="glyph">${m.glyph}</span>
+          ${m.image_url
+            ? `<img class="card-image" data-fallback-glyph="${escapeHtml(m.glyph)}" src="${escapeHtml(m.image_url)}" alt="${escapeHtml(m.name)}">`
+            : `<span class="glyph">${m.glyph}</span>`}
           <h3>${escapeHtml(m.name)}</h3>
           <p>${escapeHtml(m.description)}</p>
           <div class="serial"><span>N° série</span><b>${entry.code}</b></div>
@@ -711,14 +719,9 @@
       return;
     }
 
-    // La policy RLS n'autorise l'update que si claimed_by est encore NULL,
-    // et force claimed_by = auth.uid() — donc pas besoin de vérifier "déjà pris" à part.
-    const { data, error } = await sb
-      .from('card_codes')
-      .update({ claimed_by: session.user.id, claimed_at: new Date().toISOString() })
-      .eq('code', code)
-      .is('claimed_by', null)
-      .select();
+    // Passe par une fonction sécurisée côté base, qui vérifie elle-même
+    // l'identité de l'appelant plutôt que de dépendre d'une policy RLS.
+    const { data, error } = await sb.rpc('redeem_card_code', { p_code: code });
 
     if(error){
       redeemMsg.classList.add('err');
@@ -831,8 +834,9 @@
 
         <div class="admin-block">
           <p class="section-note" style="margin-bottom:10px;">Générer un nouveau code pour une carte existante</p>
-          <div class="pin-form">
+          <div class="pin-form" style="flex-direction:column; align-items:stretch; gap:8px;">
             <select id="newCodeModel"></select>
+            <input type="text" id="newCodeCustom" placeholder="code à 7 chiffres (laisser vide = aléatoire)" maxlength="7" inputmode="numeric" autocomplete="off">
             <button class="primary" id="genCodeBtn">Générer un code</button>
           </div>
           <div class="msg" id="genCodeMsg"></div>
@@ -870,6 +874,7 @@
 
     document.getElementById('genCodeBtn').onclick = async () => {
       const modelId = select.value;
+      const customCode = document.getElementById('newCodeCustom').value.trim();
       const genMsg = document.getElementById('genCodeMsg');
       genMsg.className = 'msg show';
       if(!modelId){
@@ -877,15 +882,27 @@
         genMsg.textContent = 'Aucune carte disponible à associer — vérifie la table card_models.';
         return;
       }
-      const { data, error } = await sb.rpc('admin_generate_code', { pin: adminPin, p_model_id: modelId });
+      if(customCode && !/^\d{7}$/.test(customCode)){
+        genMsg.classList.add('err');
+        genMsg.textContent = 'Le code personnalisé doit contenir exactement 7 chiffres.';
+        return;
+      }
+      const { data, error } = await sb.rpc('admin_generate_code', {
+        pin: adminPin,
+        p_model_id: modelId,
+        p_code: customCode || null
+      });
       if(error){
         genMsg.classList.add('err');
-        genMsg.textContent = 'Erreur : ' + error.message;
+        genMsg.textContent = error.message.includes('already exists')
+          ? 'Ce code existe déjà, choisis-en un autre.'
+          : 'Erreur : ' + error.message;
         return;
       }
       genMsg.classList.remove('err');
       genMsg.classList.add('ok');
       genMsg.textContent = `Nouveau code généré : ${data}`;
+      document.getElementById('newCodeCustom').value = '';
       await loadTestCodes();
     };
 
