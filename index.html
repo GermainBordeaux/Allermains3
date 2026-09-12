@@ -676,7 +676,6 @@
     <div class="idbar-row">
       <div class="idbar" id="idbar"></div>
     </div>
-    <div id="publicAdminZone"></div>
   </div>
 </header>
 
@@ -746,6 +745,8 @@
         <span class="track"></span>
       </label>
     </div>
+
+    <div id="publicAdminZone"></div>
   </div>
 </section>
 
@@ -994,30 +995,18 @@
       return;
     }
     publicAdminZone.innerHTML = `
-      <div class="admin-entry">
-        <button type="button" class="admin-gear-btn" id="adminEntryToggle" aria-label="Espace admin" title="Espace admin">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#2F6B49" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-          </svg>
-        </button>
-        <div class="admin-entry-popover" id="adminEntryForm">
-          <p class="section-note" style="margin-bottom:8px;">Espace admin</p>
-          <div class="pin-form">
-            <input type="password" id="publicPinInput" placeholder="code admin (8 chiffres)" maxlength="8" inputmode="numeric" autocomplete="off">
-            <button class="primary" id="publicUnlockBtn">Se connecter</button>
-          </div>
-          <div class="msg" id="publicAdminMsg"></div>
+      <div class="settings-page-row" style="flex-direction:column; align-items:stretch; gap:12px; margin-top:20px;">
+        <div>
+          <p class="settings-page-label">Espace admin</p>
+          <p class="settings-page-desc">Réservé aux détenteurs d'un code à 8 chiffres.</p>
         </div>
+        <div class="pin-form">
+          <input type="password" id="publicPinInput" placeholder="code admin (8 chiffres)" maxlength="8" inputmode="numeric" autocomplete="off">
+          <button class="primary" id="publicUnlockBtn">Se connecter</button>
+        </div>
+        <div class="msg" id="publicAdminMsg"></div>
       </div>
     `;
-    const gearBtn = document.getElementById('adminEntryToggle');
-    const popover = document.getElementById('adminEntryForm');
-    gearBtn.onclick = () => {
-      popover.classList.toggle('open');
-      gearBtn.classList.toggle('active', popover.classList.contains('open'));
-      if(popover.classList.contains('open')) document.getElementById('publicPinInput').focus();
-    };
     document.getElementById('publicUnlockBtn').onclick = unlockPublicAdmin;
     document.getElementById('publicPinInput').addEventListener('keydown', e => { if(e.key === 'Enter') unlockPublicAdmin(); });
   }
