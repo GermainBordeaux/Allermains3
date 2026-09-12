@@ -466,6 +466,30 @@
     color:var(--sub);
     margin:0;
   }
+  .account-block{
+    margin-top:16px;
+    padding:20px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    max-width:480px;
+  }
+  .account-block .settings-page-label{margin-bottom:10px;}
+  .account-block .pin-form{flex-direction:column; align-items:stretch;}
+  .avatar-picker.account-avatar-picker{flex-wrap:wrap; margin-bottom:10px;}
+  .danger-zone{
+    margin-top:16px;
+    padding:20px;
+    background:#FCEEEC;
+    border:1px solid rgba(178,74,56,0.25);
+    border-radius:16px;
+    max-width:480px;
+  }
+  html[data-theme="dark"] .danger-zone{background:#2E1712; border-color:rgba(226,138,118,0.3);}
+  .danger-zone .settings-page-label{color:#B24A38;}
+  html[data-theme="dark"] .danger-zone .settings-page-label{color:#E28A76;}
+  button.danger{background:#B24A38; color:#fff;}
+  button.danger:hover{background:#9A3D2D;}
 
   .admin-entry{
     position:fixed;
@@ -746,6 +770,8 @@
         <span class="track"></span>
       </label>
     </div>
+
+    <div id="accountSettingsZone"></div>
   </div>
 </section>
 
@@ -1311,6 +1337,139 @@
   document.getElementById('lookupBtn').onclick = lookupCollection;
   document.getElementById('lookupUsername').addEventListener('keydown', e => { if(e.key === 'Enter') lookupCollection(); });
 
+  // ---------- Paramètres du compte (avatar, pseudo, mot de passe, suppression) ----------
+
+  const accountSettingsZone = document.getElementById('accountSettingsZone');
+
+  function renderAccountSettings(){
+    if(!session || !profile){
+      accountSettingsZone.innerHTML = '';
+      return;
+    }
+    accountSettingsZone.innerHTML = `
+      <div class="account-block">
+        <p class="settings-page-label">Mon avatar</p>
+        <div class="avatar-picker account-avatar-picker" id="accountAvatarPicker"></div>
+        <div class="msg" id="avatarMsg"></div>
+      </div>
+
+      <div class="account-block">
+        <p class="settings-page-label">Mon pseudo</p>
+        <div class="pin-form">
+          <input type="text" id="usernameInput" value="${escapeHtml(profile.username)}" maxlength="24" autocomplete="off">
+          <button class="ghost" id="saveUsernameBtn">Enregistrer</button>
+        </div>
+        <div class="msg" id="usernameMsg"></div>
+      </div>
+
+      <div class="account-block">
+        <p class="settings-page-label">Mon mot de passe</p>
+        <div class="pin-form">
+          <input type="password" id="newPasswordInput" placeholder="nouveau mot de passe" autocomplete="new-password">
+          <button class="ghost" id="savePasswordBtn">Mettre à jour</button>
+        </div>
+        <div class="msg" id="passwordMsg"></div>
+      </div>
+
+      <div class="danger-zone">
+        <p class="settings-page-label">Supprimer mon compte</p>
+        <p class="settings-page-desc" style="margin-bottom:10px;">Action définitive — ta collection et ton profil seront supprimés. Tape SUPPRIMER pour confirmer.</p>
+        <div class="pin-form">
+          <input type="text" id="deleteConfirmInput" placeholder="SUPPRIMER" autocomplete="off">
+          <button class="danger" id="deleteAccountBtn">Supprimer définitivement</button>
+        </div>
+        <div class="msg" id="deleteMsg"></div>
+      </div>
+    `;
+
+    const picker = document.getElementById('accountAvatarPicker');
+    picker.innerHTML = AVATAR_OPTIONS.map(a =>
+      `<button type="button" class="avatar-opt${a === profile.avatar ? ' selected' : ''}" data-avatar="${a}">${a}</button>`
+    ).join('');
+    picker.querySelectorAll('.avatar-opt').forEach(btn => {
+      btn.onclick = async () => {
+        const avatarMsg = document.getElementById('avatarMsg');
+        avatarMsg.className = 'msg show';
+        const { error } = await sb.rpc('update_my_avatar', { p_user_id: session.user.id, p_avatar: btn.dataset.avatar });
+        if(error){
+          avatarMsg.classList.add('err');
+          avatarMsg.textContent = 'Erreur : ' + error.message;
+          return;
+        }
+        picker.querySelectorAll('.avatar-opt').forEach(b => b.classList.toggle('selected', b === btn));
+        avatarMsg.classList.remove('err');
+        avatarMsg.classList.add('ok');
+        avatarMsg.textContent = 'Avatar mis à jour.';
+        await loadProfile();
+        renderIdbar();
+      };
+    });
+
+    document.getElementById('saveUsernameBtn').onclick = async () => {
+      const newUsername = document.getElementById('usernameInput').value.trim();
+      const msg = document.getElementById('usernameMsg');
+      msg.className = 'msg show';
+      if(!newUsername){
+        msg.classList.add('err');
+        msg.textContent = 'Le pseudo ne peut pas être vide.';
+        return;
+      }
+      const { error } = await sb.rpc('update_my_username', { p_user_id: session.user.id, p_username: newUsername });
+      if(error){
+        msg.classList.add('err');
+        msg.textContent = error.message.includes('duplicate key')
+          ? 'Ce pseudo est déjà pris.'
+          : 'Erreur : ' + error.message;
+        return;
+      }
+      msg.classList.remove('err');
+      msg.classList.add('ok');
+      msg.textContent = 'Pseudo mis à jour.';
+      await loadProfile();
+      renderIdbar();
+    };
+
+    document.getElementById('savePasswordBtn').onclick = async () => {
+      const newPassword = document.getElementById('newPasswordInput').value;
+      const msg = document.getElementById('passwordMsg');
+      msg.className = 'msg show';
+      if(!newPassword || newPassword.length < 6){
+        msg.classList.add('err');
+        msg.textContent = 'Le mot de passe doit contenir au moins 6 caractères.';
+        return;
+      }
+      const { error } = await sb.auth.updateUser({ password: newPassword });
+      if(error){
+        msg.classList.add('err');
+        msg.textContent = 'Erreur : ' + error.message;
+        return;
+      }
+      msg.classList.remove('err');
+      msg.classList.add('ok');
+      msg.textContent = 'Mot de passe mis à jour.';
+      document.getElementById('newPasswordInput').value = '';
+    };
+
+    document.getElementById('deleteAccountBtn').onclick = async () => {
+      const confirmText = document.getElementById('deleteConfirmInput').value.trim();
+      const msg = document.getElementById('deleteMsg');
+      msg.className = 'msg show';
+      if(confirmText !== 'SUPPRIMER'){
+        msg.classList.add('err');
+        msg.textContent = 'Tape SUPPRIMER (en majuscules) pour confirmer.';
+        return;
+      }
+      const { error } = await sb.rpc('delete_my_account', { p_user_id: session.user.id });
+      if(error){
+        msg.classList.add('err');
+        msg.textContent = 'Erreur : ' + error.message;
+        return;
+      }
+      await sb.auth.signOut();
+      window.location.reload();
+    };
+  }
+
   // ---------- Navigation par onglets ----------
 
   document.querySelectorAll('.tab').forEach(tabBtn => {
@@ -1345,6 +1504,7 @@
     adminUnlocked = false;
     await loadProfile();
     renderIdbar();
+    renderAccountSettings();
     await loadCollection();
     await loadTestCodes();
     renderCollection();
@@ -1358,6 +1518,7 @@
     await loadCardModels();
     await loadProfile();
     renderIdbar();
+    renderAccountSettings();
     await loadCollection();
     await loadTestCodes();
     renderCollection();
