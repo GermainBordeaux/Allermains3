@@ -491,6 +491,28 @@
   button.danger{background:#B24A38; color:#fff;}
   button.danger:hover{background:#9A3D2D;}
 
+  .manage-card-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .manage-card-row:last-child{border-bottom:none;}
+  .manage-card-row .glyph{font-size:22px; width:28px; flex:none;}
+  .manage-card-row .info{flex:1; min-width:0;}
+  .manage-card-row .info b{display:block; font-size:14px;}
+  .manage-card-row .info span{font-size:12px; color:var(--sub);}
+  .manage-card-row .actions{display:flex; gap:6px; flex:none;}
+  .manage-card-row .actions button{padding:6px 12px; font-size:12.5px;}
+  .edit-card-form{
+    padding:14px 0;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+
   .admin-entry{
     position:fixed;
     top:20px;
@@ -783,7 +805,7 @@
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-14</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-15</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -1112,6 +1134,103 @@
     renderPublicAdminEntry();
   }
 
+  function renderManageCardsList(){
+    const list = document.getElementById('manageCardsList');
+    const models = Object.values(cardModels);
+    if(models.length === 0){
+      list.innerHTML = '<p class="section-note">Aucune carte pour l’instant.</p>';
+      return;
+    }
+    list.innerHTML = models.map(m => `
+      <div class="manage-card-row" data-row-id="${m.id}">
+        <span class="glyph">${m.glyph}</span>
+        <div class="info">
+          <b>${escapeHtml(m.name)}</b>
+          <span>${categoryLabel(m.category)} — ${escapeHtml(m.id)}</span>
+        </div>
+        <div class="actions">
+          <button type="button" class="ghost" data-edit="${m.id}">Éditer</button>
+          <button type="button" class="danger" data-delete="${m.id}">Supprimer</button>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('[data-delete]').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.delete;
+        if(!confirm(`Supprimer définitivement la carte "${cardModels[id].name}" ? Impossible si des exemplaires sont déjà réclamés.`)) return;
+        const { error } = await sb.rpc('admin_delete_card_model', { pin: adminPin, p_id: id });
+        if(error){
+          alert(error.message.includes('already claimed')
+            ? 'Impossible : des exemplaires de cette carte ont déjà été réclamés.'
+            : 'Erreur : ' + error.message);
+          return;
+        }
+        await loadCardModels();
+        renderManageCardsList();
+        const select = document.getElementById('newCodeModel');
+        if(select){
+          const modelList = Object.values(cardModels);
+          select.innerHTML = modelList.length
+            ? modelList.map(mm => `<option value="${mm.id}">${mm.glyph} ${escapeHtml(mm.name)}</option>`).join('')
+            : `<option value="">Aucune carte disponible</option>`;
+        }
+        await loadTestCodes();
+      };
+    });
+
+    list.querySelectorAll('[data-edit]').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.edit;
+        const m = cardModels[id];
+        const row = list.querySelector(`[data-row-id="${id}"]`);
+        row.outerHTML = `
+          <div class="edit-card-form" data-row-id="${id}">
+            <input type="text" class="edit-name" value="${escapeHtml(m.name)}" placeholder="nom affiché">
+            <select class="edit-category">
+              <option value="classique" ${m.category==='classique'?'selected':''}>Classique</option>
+              <option value="bizarre" ${m.category==='bizarre'?'selected':''}>Bizarre (style Uranium)</option>
+              <option value="fait-main" ${m.category==='fait-main'?'selected':''}>Fait main (la plus rare)</option>
+            </select>
+            <input type="text" class="edit-glyph" value="${escapeHtml(m.glyph)}" maxlength="4" placeholder="emoji">
+            <input type="text" class="edit-desc" value="${escapeHtml(m.description)}" placeholder="description">
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="primary edit-save">Enregistrer</button>
+              <button type="button" class="ghost edit-cancel">Annuler</button>
+            </div>
+            <div class="msg edit-msg"></div>
+          </div>
+        `;
+        const form = list.querySelector(`.edit-card-form[data-row-id="${id}"]`);
+        form.querySelector('.edit-cancel').onclick = () => renderManageCardsList();
+        form.querySelector('.edit-save').onclick = async () => {
+          const name = form.querySelector('.edit-name').value.trim();
+          const category = form.querySelector('.edit-category').value;
+          const glyph = form.querySelector('.edit-glyph').value.trim() || '🃏';
+          const description = form.querySelector('.edit-desc').value.trim();
+          const msg = form.querySelector('.edit-msg');
+          msg.className = 'msg show';
+          if(!name){
+            msg.classList.add('err');
+            msg.textContent = 'Le nom ne peut pas être vide.';
+            return;
+          }
+          const { error } = await sb.rpc('admin_update_card_model', {
+            pin: adminPin, p_id: id, p_name: name, p_glyph: glyph, p_description: description, p_category: category
+          });
+          if(error){
+            msg.classList.add('err');
+            msg.textContent = 'Erreur : ' + error.message;
+            return;
+          }
+          await loadCardModels();
+          renderManageCardsList();
+          await loadTestCodes();
+        };
+      };
+    });
+  }
+
   async function renderAdminPanel(){
     await loadCardModels();
     publicAdminZone.innerHTML = `
@@ -1143,6 +1262,20 @@
             <button class="primary" id="genCodeBtn">Générer un code</button>
           </div>
           <div class="msg" id="genCodeMsg"></div>
+        </div>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Désactiver un code non réclamé</p>
+          <div class="pin-form">
+            <input type="text" id="deactivateCodeInput" placeholder="code à 7 chiffres" maxlength="7" inputmode="numeric" autocomplete="off">
+            <button class="danger" id="deactivateCodeBtn">Désactiver</button>
+          </div>
+          <div class="msg" id="deactivateCodeMsg"></div>
+        </div>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Gérer les cartes existantes</p>
+          <div id="manageCardsList"></div>
         </div>
 
         <div class="admin-block">
@@ -1256,6 +1389,32 @@
       document.getElementById('genCodeBtn').disabled = false;
       await loadTestCodes();
     };
+
+    document.getElementById('deactivateCodeBtn').onclick = async () => {
+      const code = document.getElementById('deactivateCodeInput').value.trim();
+      const msg = document.getElementById('deactivateCodeMsg');
+      msg.className = 'msg show';
+      if(!/^\d{7}$/.test(code)){
+        msg.classList.add('err');
+        msg.textContent = 'Le code doit contenir exactement 7 chiffres.';
+        return;
+      }
+      const { error } = await sb.rpc('admin_deactivate_code', { pin: adminPin, p_code: code });
+      if(error){
+        msg.classList.add('err');
+        msg.textContent = error.message.includes('not found')
+          ? 'Code introuvable ou déjà réclamé par quelqu\'un.'
+          : 'Erreur : ' + error.message;
+        return;
+      }
+      msg.classList.remove('err');
+      msg.classList.add('ok');
+      msg.textContent = 'Code désactivé.';
+      document.getElementById('deactivateCodeInput').value = '';
+      await loadTestCodes();
+    };
+
+    renderManageCardsList();
 
     document.getElementById('changePinBtn').onclick = async () => {
       const newPin = document.getElementById('changePinInput').value.trim();
