@@ -783,7 +783,7 @@
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-13</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-14</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -849,6 +849,54 @@
       document.getElementById('loginBtn').onclick = () => authAction('signInWithPassword');
       document.getElementById('signupBtn').onclick = () => authAction('signUp');
     } else {
+      if(!profile){
+        idbar.innerHTML = `
+          <span class="whoami">Connecté comme <b>${escapeHtml(session.user.email)}</b></span>
+          <div class="pin-form" style="margin-top:10px; flex-direction:column; align-items:stretch;">
+            <p class="section-note" style="margin:0 0 6px;">Il manque ton profil (pseudo + avatar) — complète-le pour continuer.</p>
+            <input type="text" id="fixUsernameInput" placeholder="pseudo" maxlength="24" autocomplete="off">
+            <div class="avatar-picker" id="fixAvatarPicker" style="margin:8px 0;"></div>
+            <button class="primary" id="fixProfileBtn">Créer mon profil</button>
+            <div class="msg" id="fixProfileMsg"></div>
+          </div>
+          <button class="ghost" id="logoutBtn" style="margin-top:8px;">Se déconnecter</button>
+        `;
+        let fixAvatar = AVATAR_OPTIONS[0];
+        const fixPicker = document.getElementById('fixAvatarPicker');
+        fixPicker.innerHTML = AVATAR_OPTIONS.map(a =>
+          `<button type="button" class="avatar-opt${a===fixAvatar?' selected':''}" data-avatar="${a}">${a}</button>`
+        ).join('');
+        fixPicker.querySelectorAll('.avatar-opt').forEach(btn => {
+          btn.onclick = () => {
+            fixAvatar = btn.dataset.avatar;
+            fixPicker.querySelectorAll('.avatar-opt').forEach(b => b.classList.toggle('selected', b === btn));
+          };
+        });
+        document.getElementById('fixProfileBtn').onclick = async () => {
+          const username = document.getElementById('fixUsernameInput').value.trim();
+          const msg = document.getElementById('fixProfileMsg');
+          msg.className = 'msg show';
+          if(!username){
+            msg.classList.add('err');
+            msg.textContent = 'Choisis un pseudo.';
+            return;
+          }
+          const { error } = await sb.rpc('create_my_profile', { p_user_id: session.user.id, p_username: username, p_avatar: fixAvatar });
+          if(error){
+            msg.classList.add('err');
+            msg.textContent = error.message.includes('duplicate key')
+              ? 'Ce pseudo est déjà pris.'
+              : 'Erreur : ' + error.message;
+            return;
+          }
+          await loadProfile();
+          renderIdbar();
+          renderAccountSettings();
+          loadLeaderboard();
+        };
+        document.getElementById('logoutBtn').onclick = async () => { await sb.auth.signOut(); };
+        return;
+      }
       const label = profile ? `${profile.avatar} ${escapeHtml(profile.username)}` : escapeHtml(session.user.email);
       idbar.innerHTML = `<span class="whoami">Connecté comme <b>${label}</b></span> <button class="ghost" id="logoutBtn">Se déconnecter</button>`;
       document.getElementById('logoutBtn').onclick = async () => {
