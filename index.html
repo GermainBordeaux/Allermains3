@@ -731,7 +731,7 @@
     <button type="button" class="tab" data-tab="leaderboard">Classement</button>
     <button type="button" class="tab" data-tab="settings">Paramètres</button>
     <button type="button" class="tab" data-tab="trades">Échanges</button>
-    <button type="button" class="tab" data-tab="admin">Admin</button>
+    <button type="button" class="tab" data-tab="admin" id="adminTabBtn" style="display:none;">Admin</button>
   </div>
 </nav>
 
@@ -795,6 +795,12 @@
     </div>
 
     <div id="accountSettingsZone"></div>
+
+    <div class="account-block">
+      <p class="settings-page-label">Espace admin</p>
+      <p class="settings-page-desc" style="margin-bottom:10px;">Réservé aux détenteurs d'un code à 8 chiffres.</p>
+      <div id="adminLoginZone"></div>
+    </div>
   </div>
 </section>
 
@@ -827,12 +833,11 @@
 <section class="tab-panel" data-panel="admin" style="display:none;">
   <div class="wrap">
     <h2>Admin</h2>
-    <p class="section-note">Réservé aux détenteurs d'un code à 8 chiffres.</p>
     <div id="publicAdminZone"></div>
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-17</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-18</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -1120,12 +1125,21 @@
   // ---------- Admin : point d'entrée public (pas besoin d'être connecté) ----------
 
   function renderPublicAdminEntry(){
+    const adminTabBtn = document.getElementById('adminTabBtn');
     if(adminUnlocked){
+      adminTabBtn.style.display = '';
+      document.getElementById('adminLoginZone').innerHTML = `<p class="settings-page-desc">Connecté à l'espace admin — vois l'onglet "Admin" ci-dessus.</p>`;
       publicAdminZone.innerHTML = '';
       renderAdminPanel();
       return;
     }
-    publicAdminZone.innerHTML = `
+    adminTabBtn.style.display = 'none';
+    // Si on était sur l'onglet admin et qu'on se retrouve verrouillé, retourne sur Paramètres
+    const adminPanelEl = document.querySelector('.tab-panel[data-panel="admin"]');
+    if(adminPanelEl && adminPanelEl.style.display !== 'none'){
+      document.querySelector('.tab[data-tab="settings"]').click();
+    }
+    document.getElementById('adminLoginZone').innerHTML = `
       <div class="pin-form">
         <input type="password" id="publicPinInput" placeholder="code admin (8 chiffres)" maxlength="8" inputmode="numeric" autocomplete="off">
         <button class="primary" id="publicUnlockBtn">Se connecter</button>
