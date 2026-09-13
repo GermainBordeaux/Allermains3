@@ -808,7 +808,10 @@
       <div class="pin-form" style="flex-direction:column; align-items:stretch; gap:8px;">
         <select id="tradeOfferModel"></select>
         <input type="text" id="tradeToUsername" placeholder="pseudo de la personne" autocomplete="off">
-        <select id="tradeRequestModel"></select>
+        <div class="section-note" id="tradeLookupStatus" style="margin:0;"></div>
+        <select id="tradeRequestModel" disabled>
+          <option value="">Tape d'abord un pseudo ↑</option>
+        </select>
         <button class="primary" id="proposeTradeBtn">Proposer l'échange</button>
       </div>
       <div class="msg" id="proposeTradeMsg"></div>
@@ -829,7 +832,7 @@
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-16</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-17</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -1716,9 +1719,45 @@
       ? myModels.map(m => `<option value="${m.id}">${m.glyph} ${escapeHtml(m.name)}</option>`).join('')
       : `<option value="">Tu ne possèdes aucune carte à offrir</option>`;
 
-    const allModels = Object.values(cardModels);
-    requestSelect.innerHTML = allModels.map(m => `<option value="${m.id}">${m.glyph} ${escapeHtml(m.name)}</option>`).join('');
   }
+
+  let tradeLookupTimer = null;
+  document.getElementById('tradeToUsername').addEventListener('input', () => {
+    clearTimeout(tradeLookupTimer);
+    const requestSelect = document.getElementById('tradeRequestModel');
+    const status = document.getElementById('tradeLookupStatus');
+    const username = document.getElementById('tradeToUsername').value.trim();
+
+    if(!username){
+      requestSelect.disabled = true;
+      requestSelect.innerHTML = `<option value="">Tape d'abord un pseudo ↑</option>`;
+      status.textContent = '';
+      return;
+    }
+
+    status.textContent = 'Recherche…';
+    tradeLookupTimer = setTimeout(async () => {
+      const { data, error } = await sb.rpc('view_collection', { p_username: username });
+      if(error || !data){
+        requestSelect.disabled = true;
+        requestSelect.innerHTML = `<option value="">Erreur de recherche</option>`;
+        status.textContent = '';
+        return;
+      }
+      if(data.length === 0){
+        requestSelect.disabled = true;
+        requestSelect.innerHTML = `<option value="">Ce pseudo n'existe pas ou n'a aucune carte</option>`;
+        status.textContent = `Aucune carte trouvée pour "${username}".`;
+        return;
+      }
+      requestSelect.disabled = false;
+      requestSelect.innerHTML = data.map(row => {
+        const m = cardModels[row.model_id];
+        return `<option value="${row.model_id}">${m ? m.glyph + ' ' + escapeHtml(m.name) : row.model_id}${row.count > 1 ? ` (×${row.count})` : ''}</option>`;
+      }).join('');
+      status.textContent = `${data.length} carte${data.length > 1 ? 's' : ''} disponible${data.length > 1 ? 's' : ''} chez ${escapeHtml(username)}.`;
+    }, 400);
+  });
 
   document.getElementById('proposeTradeBtn').onclick = async () => {
     const offeredModelId = document.getElementById('tradeOfferModel').value;
@@ -1740,6 +1779,11 @@
     if(!toUsername){
       msg.classList.add('err');
       msg.textContent = 'Indique le pseudo de la personne.';
+      return;
+    }
+    if(!requestedModelId || document.getElementById('tradeRequestModel').disabled){
+      msg.classList.add('err');
+      msg.textContent = 'Cherche d’abord un pseudo valide pour voir ses cartes disponibles.';
       return;
     }
 
