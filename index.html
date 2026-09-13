@@ -730,6 +730,7 @@
     <button type="button" class="tab active" data-tab="cards">Cartes</button>
     <button type="button" class="tab" data-tab="leaderboard">Classement</button>
     <button type="button" class="tab" data-tab="settings">Paramètres</button>
+    <button type="button" class="tab" data-tab="trades">Échanges</button>
     <button type="button" class="tab" data-tab="admin">Admin</button>
   </div>
 </nav>
@@ -797,6 +798,29 @@
   </div>
 </section>
 
+<section class="tab-panel" data-panel="trades" style="display:none;">
+  <div class="wrap">
+    <h2>Échanges</h2>
+    <p class="section-note">⚠️ Un échange validé ici doit s'accompagner de l'échange des cartes physiques en main propre — le site n'est qu'un registre de qui possède quel numéro de série.</p>
+
+    <div class="account-block">
+      <p class="settings-page-label">Proposer un échange</p>
+      <div class="pin-form" style="flex-direction:column; align-items:stretch; gap:8px;">
+        <select id="tradeOfferModel"></select>
+        <input type="text" id="tradeToUsername" placeholder="pseudo de la personne" autocomplete="off">
+        <select id="tradeRequestModel"></select>
+        <button class="primary" id="proposeTradeBtn">Proposer l'échange</button>
+      </div>
+      <div class="msg" id="proposeTradeMsg"></div>
+    </div>
+
+    <div class="account-block">
+      <p class="settings-page-label">Mes échanges</p>
+      <div id="tradesList">Connecte-toi pour voir tes échanges.</div>
+    </div>
+  </div>
+</section>
+
 <section class="tab-panel" data-panel="admin" style="display:none;">
   <div class="wrap">
     <h2>Admin</h2>
@@ -805,7 +829,7 @@
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-15</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-16</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -1085,6 +1109,7 @@
     renderCollection();
     renderPublicAdminEntry();
     loadLeaderboard();
+    populateTradeSelects();
   };
 
   codeInput.addEventListener('keydown', e => { if(e.key === 'Enter') redeemBtn.click(); });
@@ -1677,6 +1702,132 @@
     };
   }
 
+  // ---------- Échanges ----------
+
+  function populateTradeSelects(){
+    const offerSelect = document.getElementById('tradeOfferModel');
+    const requestSelect = document.getElementById('tradeRequestModel');
+    if(!offerSelect || !requestSelect) return;
+
+    // Modèles que je possède au moins une fois
+    const myModelIds = new Set(collection.map(c => c.model_id));
+    const myModels = Object.values(cardModels).filter(m => myModelIds.has(m.id));
+    offerSelect.innerHTML = myModels.length
+      ? myModels.map(m => `<option value="${m.id}">${m.glyph} ${escapeHtml(m.name)}</option>`).join('')
+      : `<option value="">Tu ne possèdes aucune carte à offrir</option>`;
+
+    const allModels = Object.values(cardModels);
+    requestSelect.innerHTML = allModels.map(m => `<option value="${m.id}">${m.glyph} ${escapeHtml(m.name)}</option>`).join('');
+  }
+
+  document.getElementById('proposeTradeBtn').onclick = async () => {
+    const offeredModelId = document.getElementById('tradeOfferModel').value;
+    const requestedModelId = document.getElementById('tradeRequestModel').value;
+    const toUsername = document.getElementById('tradeToUsername').value.trim();
+    const msg = document.getElementById('proposeTradeMsg');
+    msg.className = 'msg show';
+
+    if(!session){
+      msg.classList.add('err');
+      msg.textContent = 'Connecte-toi d’abord.';
+      return;
+    }
+    if(!offeredModelId){
+      msg.classList.add('err');
+      msg.textContent = 'Tu n’as aucune carte à offrir.';
+      return;
+    }
+    if(!toUsername){
+      msg.classList.add('err');
+      msg.textContent = 'Indique le pseudo de la personne.';
+      return;
+    }
+
+    const { error } = await sb.rpc('propose_trade', {
+      p_from_user: session.user.id,
+      p_to_username: toUsername,
+      p_offered_model_id: offeredModelId,
+      p_requested_model_id: requestedModelId
+    });
+    if(error){
+      msg.classList.add('err');
+      msg.textContent = error.message.includes('user not found') ? 'Pseudo introuvable.'
+        : error.message.includes('does not own the requested') ? 'Cette personne ne possède pas cette carte.'
+        : error.message.includes('do not own this card') ? 'Tu ne possèdes pas cette carte.'
+        : error.message.includes('cannot trade with yourself') ? 'Tu ne peux pas échanger avec toi-même.'
+        : 'Erreur : ' + error.message;
+      return;
+    }
+    msg.classList.remove('err');
+    msg.classList.add('ok');
+    msg.textContent = 'Proposition envoyée !';
+    document.getElementById('tradeToUsername').value = '';
+    await loadTrades();
+  };
+
+  async function loadTrades(){
+    const tradesList = document.getElementById('tradesList');
+    if(!session){
+      tradesList.innerHTML = 'Connecte-toi pour voir tes échanges.';
+      return;
+    }
+    const { data, error } = await sb.rpc('list_my_trades', { p_user_id: session.user.id });
+    if(error){
+      tradesList.innerHTML = 'Impossible de charger les échanges.';
+      return;
+    }
+    if(!data || data.length === 0){
+      tradesList.innerHTML = '<div class="empty">Aucun échange pour l’instant.</div>';
+      return;
+    }
+    const statusLabel = { pending: 'En attente', accepted: 'Accepté', declined: 'Refusé', cancelled: 'Annulé' };
+    tradesList.innerHTML = data.map(t => {
+      const offered = cardModels[t.offered_model_id];
+      const requested = cardModels[t.requested_model_id];
+      const isIncoming = t.direction === 'in';
+      const desc = isIncoming
+        ? `${t.avatar || ''} <b>${escapeHtml(t.other_username)}</b> t'offre ${offered ? offered.glyph + ' ' + escapeHtml(offered.name) : t.offered_model_id} contre ${requested ? requested.glyph + ' ' + escapeHtml(requested.name) : t.requested_model_id}`
+        : `Tu offres ${offered ? offered.glyph + ' ' + escapeHtml(offered.name) : t.offered_model_id} à <b>${escapeHtml(t.other_username)}</b> contre ${requested ? requested.glyph + ' ' + escapeHtml(requested.name) : t.requested_model_id}`;
+      let actions = '';
+      if(t.status === 'pending' && isIncoming){
+        actions = `<button class="primary trade-accept" data-id="${t.id}" style="margin-right:6px;">Accepter</button><button class="ghost trade-decline" data-id="${t.id}">Refuser</button>`;
+      } else if(t.status === 'pending' && !isIncoming){
+        actions = `<button class="ghost trade-cancel" data-id="${t.id}">Annuler</button>`;
+      }
+      return `
+        <div class="manage-card-row" style="flex-direction:column; align-items:flex-start; gap:6px;">
+          <div style="font-size:13.5px;">${desc}</div>
+          <div style="font-size:11px; color:var(--sub);">${statusLabel[t.status] || t.status}</div>
+          ${actions ? `<div>${actions}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    tradesList.querySelectorAll('.trade-accept').forEach(btn => {
+      btn.onclick = async () => {
+        const { error } = await sb.rpc('respond_trade', { p_trade_id: btn.dataset.id, p_user_id: session.user.id, p_accept: true });
+        if(error){ alert('Erreur : ' + error.message); return; }
+        await loadCollection();
+        renderCollection();
+        await loadTrades();
+        loadLeaderboard();
+        populateTradeSelects();
+      };
+    });
+    tradesList.querySelectorAll('.trade-decline').forEach(btn => {
+      btn.onclick = async () => {
+        await sb.rpc('respond_trade', { p_trade_id: btn.dataset.id, p_user_id: session.user.id, p_accept: false });
+        await loadTrades();
+      };
+    });
+    tradesList.querySelectorAll('.trade-cancel').forEach(btn => {
+      btn.onclick = async () => {
+        await sb.rpc('cancel_trade', { p_trade_id: btn.dataset.id, p_user_id: session.user.id });
+        await loadTrades();
+      };
+    });
+  }
+
   // ---------- Navigation par onglets ----------
 
   document.querySelectorAll('.tab').forEach(tabBtn => {
@@ -1717,6 +1868,8 @@
     renderCollection();
     renderPublicAdminEntry();
     loadLeaderboard();
+    populateTradeSelects();
+    loadTrades();
   });
 
   (async () => {
@@ -1731,6 +1884,8 @@
     renderCollection();
     renderPublicAdminEntry();
     loadLeaderboard();
+    populateTradeSelects();
+    loadTrades();
   })();
 })();
 </script>
