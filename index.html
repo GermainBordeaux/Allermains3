@@ -824,14 +824,21 @@
 <section class="tab-panel" data-panel="shop" style="display:none;">
   <div class="wrap">
     <h2>Shop</h2>
-    <p class="section-note">Échange tes 💊 Doliprane (gagnés en débloquant des cartes) contre des boosters physiques.</p>
+    <p class="section-note">Échange tes 💊 Doliprane contre des boosters physiques.</p>
 
-    <div class="settings-page-row" style="max-width:none; margin-bottom:20px;">
+    <div class="settings-page-row" style="max-width:none; margin-bottom:14px;">
       <div>
         <p class="settings-page-label">Mon solde</p>
-        <p class="settings-page-desc">1 carte débloquée = 5 💊</p>
+        <p class="settings-page-desc" id="streakDesc">Connecte-toi pour voir ton streak.</p>
       </div>
       <div id="dolipraneBalance" style="font-family:'JetBrains Mono', monospace; font-weight:700; font-size:20px; color:var(--leaf-deep);">—</div>
+    </div>
+
+    <div class="account-block" style="margin-bottom:20px;">
+      <p class="settings-page-label">Connexion quotidienne</p>
+      <p class="settings-page-desc" style="margin-bottom:10px;">+2 💊 chaque jour, +10 💊 bonus tous les 7 jours d'affilée.</p>
+      <button class="primary" id="dailyCheckinBtn">Réclamer mon bonus du jour</button>
+      <div class="msg" id="checkinMsg"></div>
     </div>
 
     <div class="grid" id="shopItemsGrid"></div>
@@ -876,7 +883,7 @@
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-20</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-22</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -1909,6 +1916,9 @@
     }
 
     balanceEl.textContent = profile ? `${profile.doliprane ?? 0} 💊` : '—';
+    document.getElementById('streakDesc').textContent = profile
+      ? `Série actuelle : ${profile.streak_count ?? 0} jour${(profile.streak_count ?? 0) > 1 ? 's' : ''}${profile.last_checkin === new Date().toISOString().slice(0,10) ? ' — déjà réclamé aujourd’hui' : ''}`
+      : 'Connecte-toi pour voir ton streak.';
 
     const { data: items, error: itemsError } = await sb.from('shop_items').select('*').order('price', { ascending: true });
     if(itemsError || !items || items.length === 0){
@@ -1955,6 +1965,33 @@
       `).join('');
     }
   }
+
+  document.getElementById('dailyCheckinBtn').onclick = async () => {
+    const msg = document.getElementById('checkinMsg');
+    msg.className = 'msg show';
+    if(!session){
+      msg.classList.add('err');
+      msg.textContent = 'Connecte-toi d’abord.';
+      return;
+    }
+    const { data, error } = await sb.rpc('daily_checkin', { p_user_id: session.user.id });
+    if(error){
+      msg.classList.add('err');
+      msg.textContent = 'Erreur : ' + error.message;
+      return;
+    }
+    const result = data[0];
+    if(result.already_claimed){
+      msg.classList.add('err');
+      msg.textContent = 'Déjà réclamé aujourd’hui — reviens demain !';
+      return;
+    }
+    msg.classList.remove('err');
+    msg.classList.add('ok');
+    msg.textContent = `+${result.reward} 💊 ! Série : ${result.new_streak} jour${result.new_streak > 1 ? 's' : ''}.`;
+    await loadProfile();
+    await loadShop();
+  };
 
   // ---------- Échanges ----------
 
