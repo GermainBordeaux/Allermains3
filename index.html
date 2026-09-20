@@ -836,7 +836,7 @@
 
     <div class="account-block" style="margin-bottom:20px;">
       <p class="settings-page-label">Connexion quotidienne</p>
-      <p class="settings-page-desc" style="margin-bottom:10px;">+2 💊 chaque jour, +10 💊 bonus tous les 7 jours d'affilée.</p>
+      <p class="settings-page-desc" style="margin-bottom:10px;">+2 💊 chaque jour, +10 💊 bonus tous les 7 jours d'affilée. Un doublon débloqué peut aussi être converti en +8 💊, ou offert gratuitement à quelqu'un. Parrainer quelqu'un rapporte +10 💊 à chacun.</p>
       <button class="primary" id="dailyCheckinBtn">Réclamer mon bonus du jour</button>
       <div class="msg" id="checkinMsg"></div>
     </div>
@@ -883,7 +883,7 @@
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-22</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-23</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -933,6 +933,7 @@
         <div class="avatar-picker" id="avatarPicker"></div>
         <input type="email" id="emailInput" placeholder="email">
         <input type="password" id="passInput" placeholder="mot de passe">
+        <input type="text" id="referralInput" placeholder="pseudo du parrain (facultatif)" autocomplete="off">
         <button class="primary" id="loginBtn">Se connecter</button>
         <button class="ghost" id="signupBtn">Créer un compte</button>
       `;
@@ -1029,17 +1030,23 @@
       return;
     }
     if(method === 'signUp'){
-      // Crée le profil associé (pseudo + avatar) si la session est déjà active
-      // (si la confirmation par email est activée, ceci se fera à la première connexion)
+      // Crée le profil associé (pseudo + avatar + parrainage éventuel) via une fonction
+      // sécurisée, si la session est déjà active (sinon ça se fera à la première connexion).
       if(data.user){
-        const { error: profileError } = await sb.from('profiles').insert({
-          id: data.user.id,
-          username,
-          avatar: chosenAvatar
+        const referredBy = document.getElementById('referralInput').value.trim();
+        const { error: profileError } = await sb.rpc('create_my_profile', {
+          p_user_id: data.user.id,
+          p_username: username,
+          p_avatar: chosenAvatar,
+          p_referred_by_username: referredBy || null
         });
-        if(profileError && profileError.code === '23505'){
+        if(profileError){
           redeemMsg.classList.add('err');
-          redeemMsg.textContent = 'Ce pseudo est déjà pris, choisis-en un autre.';
+          redeemMsg.textContent = profileError.message.includes('duplicate key')
+            ? 'Ce pseudo est déjà pris, choisis-en un autre.'
+            : profileError.message.includes('referral username not found')
+            ? 'Le pseudo du parrain indiqué n\'existe pas.'
+            : 'Erreur : ' + profileError.message;
           return;
         }
       }
@@ -1123,6 +1130,67 @@
 
   // ---------- Redeem ----------
 
+  function showDuplicateChoice(code, modelId){
+    const m = cardModels[modelId];
+    const name = m ? `${m.glyph} ${m.name}` : modelId;
+    redeemMsg.className = 'msg show';
+    redeemMsg.classList.remove('err', 'ok');
+    redeemMsg.innerHTML = `
+      <div>Tu as déjà <b>${escapeHtml(name)}</b> ! C'est un doublon — que veux-tu en faire ?</div>
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+        <button type="button" class="primary" id="keepMoneyBtn">Garder l'argent (+8 💊)</button>
+        <button type="button" class="ghost" id="giftCardBtn">Offrir à quelqu'un gratuitement</button>
+      </div>
+      <div id="duplicateGiftForm" style="display:none; margin-top:10px;">
+        <div class="pin-form">
+          <input type="text" id="giftUsername" placeholder="pseudo du destinataire" autocomplete="off">
+          <button class="primary" id="confirmGiftBtn">Offrir</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('keepMoneyBtn').onclick = async () => {
+      const { data, error } = await sb.rpc('redeem_duplicate_for_currency', { p_code: code, p_user_id: session.user.id });
+      if(error){
+        redeemMsg.className = 'msg show err';
+        redeemMsg.textContent = 'Erreur : ' + error.message;
+        return;
+      }
+      codeInput.value = '';
+      redeemMsg.className = 'msg show ok';
+      redeemMsg.textContent = `+${data[0].reward} 💊 pour ton doublon !`;
+      await loadCollection();
+      await loadTestCodes();
+      renderCollection();
+      loadLeaderboard();
+      await loadProfile();
+      loadShop();
+    };
+
+    document.getElementById('giftCardBtn').onclick = () => {
+      document.getElementById('duplicateGiftForm').style.display = 'block';
+    };
+
+    document.getElementById('confirmGiftBtn').onclick = async () => {
+      const toUsername = document.getElementById('giftUsername').value.trim();
+      if(!toUsername){
+        alert('Indique le pseudo du destinataire.');
+        return;
+      }
+      const { data, error } = await sb.rpc('gift_card_code', { p_code: code, p_to_username: toUsername });
+      if(error){
+        redeemMsg.className = 'msg show err';
+        redeemMsg.textContent = error.message.includes('recipient not found') ? 'Pseudo introuvable.' : 'Erreur : ' + error.message;
+        return;
+      }
+      codeInput.value = '';
+      redeemMsg.className = 'msg show ok';
+      redeemMsg.textContent = `Carte offerte à ${escapeHtml(data[0].to_username)} !`;
+      await loadTestCodes();
+      loadLeaderboard();
+    };
+  }
+
   redeemBtn.onclick = async () => {
     const code = codeInput.value.trim();
     redeemMsg.className = 'msg show';
@@ -1138,6 +1206,30 @@
       return;
     }
 
+    // On regarde d'abord à quelle carte correspond le code, sans le réclamer,
+    // pour savoir si c'est un doublon avant d'agir.
+    const { data: peekedModelId, error: peekError } = await sb.rpc('peek_code_model', { p_code: code });
+    if(peekError){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Erreur : ' + peekError.message;
+      return;
+    }
+    if(!peekedModelId){
+      redeemMsg.classList.add('err');
+      redeemMsg.textContent = 'Code invalide ou déjà utilisé par quelqu’un.';
+      return;
+    }
+
+    const isDuplicate = collection.some(c => c.model_id === peekedModelId);
+    if(isDuplicate){
+      showDuplicateChoice(code, peekedModelId);
+      return;
+    }
+
+    await finalizeRedeem(code);
+  };
+
+  async function finalizeRedeem(code){
     // Passe par une fonction sécurisée côté base, qui vérifie elle-même
     // l'identité de l'appelant plutôt que de dépendre d'une policy RLS.
     const { data, error } = await sb.rpc('redeem_card_code', { p_code: code, p_user_id: session.user.id });
@@ -1166,7 +1258,7 @@
     populateTradeSelects();
     await loadProfile();
     loadShop();
-  };
+  }
 
   codeInput.addEventListener('keydown', e => { if(e.key === 'Enter') redeemBtn.click(); });
 
@@ -1791,6 +1883,11 @@
           <button class="ghost" id="saveUsernameBtn">Enregistrer</button>
         </div>
         <div class="msg" id="usernameMsg"></div>
+      </div>
+
+      <div class="account-block">
+        <p class="settings-page-label">Parrainage</p>
+        <p class="settings-page-desc">Donne ton pseudo (<b>${escapeHtml(profile.username)}</b>) à quelqu'un pour qu'il le renseigne à son inscription — vous gagnez chacun +10 💊.</p>
       </div>
 
       <div class="account-block">
