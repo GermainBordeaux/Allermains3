@@ -746,6 +746,7 @@
     <button type="button" class="tab active" data-tab="cards">Cartes</button>
     <button type="button" class="tab" data-tab="leaderboard">Classement</button>
     <button type="button" class="tab" data-tab="settings">Paramètres</button>
+    <button type="button" class="tab" data-tab="shop">Shop</button>
     <button type="button" class="tab" data-tab="trades">Échanges<span class="tab-badge" id="tradesBadge" style="display:none;"></span></button>
     <button type="button" class="tab" data-tab="admin" id="adminTabBtn" style="display:none;">Admin</button>
   </div>
@@ -820,6 +821,28 @@
   </div>
 </section>
 
+<section class="tab-panel" data-panel="shop" style="display:none;">
+  <div class="wrap">
+    <h2>Shop</h2>
+    <p class="section-note">Échange tes 💊 Doliprane (gagnés en débloquant des cartes) contre des boosters physiques.</p>
+
+    <div class="settings-page-row" style="max-width:none; margin-bottom:20px;">
+      <div>
+        <p class="settings-page-label">Mon solde</p>
+        <p class="settings-page-desc">1 carte débloquée = 5 💊</p>
+      </div>
+      <div id="dolipraneBalance" style="font-family:'JetBrains Mono', monospace; font-weight:700; font-size:20px; color:var(--leaf-deep);">—</div>
+    </div>
+
+    <div class="grid" id="shopItemsGrid"></div>
+
+    <div class="account-block" style="margin-top:24px;">
+      <p class="settings-page-label">Mes commandes</p>
+      <div id="myOrdersList"></div>
+    </div>
+  </div>
+</section>
+
 <section class="tab-panel" data-panel="trades" style="display:none;">
   <div class="wrap">
     <h2>Échanges</h2>
@@ -853,7 +876,7 @@
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-19</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-20</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -1134,6 +1157,8 @@
     renderPublicAdminEntry();
     loadLeaderboard();
     populateTradeSelects();
+    await loadProfile();
+    loadShop();
   };
 
   codeInput.addEventListener('keydown', e => { if(e.key === 'Enter') redeemBtn.click(); });
@@ -1289,6 +1314,90 @@
     });
   }
 
+  async function renderManageItemsList(){
+    const list = document.getElementById('manageItemsList');
+    const { data, error } = await sb.rpc('admin_list_shop_items', { pin: adminPin });
+    if(error || !data){
+      list.innerHTML = 'Impossible de charger les articles.';
+      return;
+    }
+    if(data.length === 0){
+      list.innerHTML = '<p class="section-note">Aucun article pour l’instant.</p>';
+      return;
+    }
+    list.innerHTML = data.map(item => `
+      <div class="manage-card-row" data-item-row="${item.id}">
+        <span class="glyph">🎁</span>
+        <div class="info">
+          <b>${escapeHtml(item.name)} ${item.active ? '' : '<span style="color:#B24A38;">(désactivé)</span>'}</b>
+          <span>${item.price} 💊 — ${escapeHtml(item.description)}</span>
+        </div>
+        <div class="actions">
+          <button type="button" class="ghost" data-toggle="${item.id}" data-active="${item.active}">${item.active ? 'Désactiver' : 'Activer'}</button>
+          <button type="button" class="danger" data-delete-item="${item.id}">Supprimer</button>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('[data-toggle]').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.toggle;
+        const currentlyActive = btn.dataset.active === 'true';
+        const item = data.find(i => i.id === id);
+        const { error: toggleError } = await sb.rpc('admin_update_shop_item', {
+          pin: adminPin, p_id: id, p_name: item.name, p_description: item.description,
+          p_price: item.price, p_active: !currentlyActive
+        });
+        if(toggleError){ alert('Erreur : ' + toggleError.message); return; }
+        await renderManageItemsList();
+        await loadShop();
+      };
+    });
+    list.querySelectorAll('[data-delete-item]').forEach(btn => {
+      btn.onclick = async () => {
+        if(!confirm('Supprimer définitivement cet article (et ses commandes associées) ?')) return;
+        const { error: delError } = await sb.rpc('admin_delete_shop_item', { pin: adminPin, p_id: btn.dataset.deleteItem });
+        if(delError){ alert('Erreur : ' + delError.message); return; }
+        await renderManageItemsList();
+        await renderOrdersList();
+        await loadShop();
+      };
+    });
+  }
+
+  async function renderOrdersList(){
+    const list = document.getElementById('ordersList');
+    const { data, error } = await sb.rpc('admin_list_orders', { pin: adminPin });
+    if(error || !data){
+      list.innerHTML = 'Impossible de charger les commandes.';
+      return;
+    }
+    if(data.length === 0){
+      list.innerHTML = '<p class="section-note">Aucune commande pour l’instant.</p>';
+      return;
+    }
+    const statusLabel = { pending: 'En attente', fulfilled: 'Remise', cancelled: 'Annulée' };
+    list.innerHTML = data.map(o => `
+      <div class="manage-card-row">
+        <span class="glyph">${o.avatar || '🎁'}</span>
+        <div class="info">
+          <b>${escapeHtml(o.username)} — ${escapeHtml(o.item_name)}</b>
+          <span>${o.price_paid} 💊 — ${statusLabel[o.status] || o.status}</span>
+        </div>
+        <div class="actions">
+          ${o.status === 'pending' ? `<button type="button" class="primary" data-fulfill="${o.id}">Marquer remise</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+    list.querySelectorAll('[data-fulfill]').forEach(btn => {
+      btn.onclick = async () => {
+        const { error: fulfillError } = await sb.rpc('admin_fulfill_order', { pin: adminPin, p_order_id: btn.dataset.fulfill });
+        if(fulfillError){ alert('Erreur : ' + fulfillError.message); return; }
+        await renderOrdersList();
+      };
+    });
+  }
+
   async function renderAdminPanel(){
     await loadCardModels();
     publicAdminZone.innerHTML = `
@@ -1334,6 +1443,27 @@
         <div class="admin-block">
           <p class="section-note" style="margin-bottom:10px;">Gérer les cartes existantes</p>
           <div id="manageCardsList"></div>
+        </div>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Créer un article boutique</p>
+          <div class="pin-form" style="flex-direction:column; align-items:stretch; gap:8px;">
+            <input type="text" id="newItemName" placeholder="nom (ex: Booster classique)" autocomplete="off">
+            <input type="text" id="newItemDesc" placeholder="description" autocomplete="off">
+            <input type="number" id="newItemPrice" placeholder="prix en 💊" min="1" autocomplete="off">
+            <button class="primary" id="createItemBtn">Créer l'article</button>
+          </div>
+          <div class="msg" id="createItemMsg"></div>
+        </div>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Gérer les articles</p>
+          <div id="manageItemsList"></div>
+        </div>
+
+        <div class="admin-block">
+          <p class="section-note" style="margin-bottom:10px;">Commandes</p>
+          <div id="ordersList"></div>
         </div>
 
         <div class="admin-block">
@@ -1473,6 +1603,35 @@
     };
 
     renderManageCardsList();
+
+    document.getElementById('createItemBtn').onclick = async () => {
+      const name = document.getElementById('newItemName').value.trim();
+      const description = document.getElementById('newItemDesc').value.trim();
+      const price = parseInt(document.getElementById('newItemPrice').value, 10);
+      const msg = document.getElementById('createItemMsg');
+      msg.className = 'msg show';
+      if(!name || !price || price <= 0){
+        msg.classList.add('err');
+        msg.textContent = 'Nom et prix (nombre positif) obligatoires.';
+        return;
+      }
+      const { error } = await sb.rpc('admin_create_shop_item', { pin: adminPin, p_name: name, p_description: description, p_price: price });
+      if(error){
+        msg.classList.add('err');
+        msg.textContent = 'Erreur : ' + error.message;
+        return;
+      }
+      msg.classList.remove('err');
+      msg.classList.add('ok');
+      msg.textContent = 'Article créé.';
+      document.getElementById('newItemName').value = '';
+      document.getElementById('newItemDesc').value = '';
+      document.getElementById('newItemPrice').value = '';
+      await renderManageItemsList();
+    };
+
+    await renderManageItemsList();
+    await renderOrdersList();
 
     document.getElementById('changePinBtn').onclick = async () => {
       const newPin = document.getElementById('changePinInput').value.trim();
@@ -1735,6 +1894,68 @@
     };
   }
 
+  // ---------- Shop (Doliprane) ----------
+
+  async function loadShop(){
+    const balanceEl = document.getElementById('dolipraneBalance');
+    const grid = document.getElementById('shopItemsGrid');
+    const ordersList = document.getElementById('myOrdersList');
+
+    if(!session){
+      balanceEl.textContent = '—';
+      grid.innerHTML = '<div class="empty">Connecte-toi pour voir la boutique.</div>';
+      ordersList.innerHTML = '';
+      return;
+    }
+
+    balanceEl.textContent = profile ? `${profile.doliprane ?? 0} 💊` : '—';
+
+    const { data: items, error: itemsError } = await sb.from('shop_items').select('*').order('price', { ascending: true });
+    if(itemsError || !items || items.length === 0){
+      grid.innerHTML = '<div class="empty">Aucun article disponible pour l’instant.</div>';
+    } else {
+      const balance = profile ? (profile.doliprane ?? 0) : 0;
+      grid.innerHTML = items.map(item => `
+        <div class="card">
+          <p class="category classique">💊 ${item.price}</p>
+          <span class="glyph">🎁</span>
+          <h3>${escapeHtml(item.name)}</h3>
+          <p>${escapeHtml(item.description)}</p>
+          <button type="button" class="primary buy-btn" data-id="${item.id}" style="width:100%;" ${balance < item.price ? 'disabled' : ''}>
+            ${balance < item.price ? 'Solde insuffisant' : 'Échanger'}
+          </button>
+        </div>
+      `).join('');
+      grid.querySelectorAll('.buy-btn').forEach(btn => {
+        btn.onclick = async () => {
+          if(!confirm('Confirmer l’échange ? Le débit est immédiat.')) return;
+          const { error } = await sb.rpc('purchase_item', { p_user_id: session.user.id, p_item_id: btn.dataset.id });
+          if(error){
+            alert(error.message.includes('insufficient') ? 'Solde insuffisant.' : 'Erreur : ' + error.message);
+            return;
+          }
+          await loadProfile();
+          await loadShop();
+        };
+      });
+    }
+
+    const { data: orders, error: ordersError } = await sb.rpc('my_orders', { p_user_id: session.user.id });
+    if(ordersError || !orders || orders.length === 0){
+      ordersList.innerHTML = '<div class="empty">Aucune commande pour l’instant.</div>';
+    } else {
+      const statusLabel = { pending: 'En attente de retrait', fulfilled: 'Remise ✅', cancelled: 'Annulée' };
+      ordersList.innerHTML = orders.map(o => `
+        <div class="manage-card-row">
+          <div class="info">
+            <b>${escapeHtml(o.item_name)}</b>
+            <span>${o.price_paid} 💊 — ${statusLabel[o.status] || o.status}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
   // ---------- Échanges ----------
 
   function populateTradeSelects(){
@@ -1965,6 +2186,7 @@
     loadLeaderboard();
     populateTradeSelects();
     loadTrades();
+    loadShop();
   });
 
   (async () => {
@@ -1981,6 +2203,7 @@
     loadLeaderboard();
     populateTradeSelects();
     loadTrades();
+    loadShop();
   })();
 })();
 </script>
