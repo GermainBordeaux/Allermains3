@@ -883,7 +883,7 @@
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-23</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-24</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -1084,6 +1084,12 @@
     if(!session){ collection = []; return; }
     const { data, error } = await sb.rpc('my_collection', { p_user_id: session.user.id });
     collection = error ? [] : data;
+
+    // Si un modèle référencé par la collection n'est pas en cache, recharge le catalogue.
+    const missingModel = collection.some(c => !cardModels[c.model_id]);
+    if(missingModel){
+      await loadCardModels();
+    }
   }
 
   async function loadTestCodes(){
@@ -1113,7 +1119,19 @@
     note.textContent = `${collection.length} carte${collection.length>1?'s':''} débloquée${collection.length>1?'s':''}.`;
     grid.innerHTML = collection.map(entry => {
       const m = cardModels[entry.model_id];
-      if(!m) return '';
+      if(!m){
+        // Modèle introuvable en cache (pas encore chargé, ou supprimé depuis) —
+        // on affiche quand même quelque chose plutôt que de faire disparaître la carte.
+        return `
+          <div class="card">
+            <p class="category classique">?</p>
+            <span class="glyph">🃏</span>
+            <h3>${escapeHtml(entry.model_id)}</h3>
+            <p>Détails indisponibles pour l’instant.</p>
+            <div class="serial"><span>N° série</span><b>${entry.code}</b></div>
+          </div>
+        `;
+      }
       return `
         <div class="card">
           <p class="category ${m.category || 'classique'}">${categoryLabel(m.category)}</p>
