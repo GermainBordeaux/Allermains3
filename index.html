@@ -410,6 +410,19 @@
   .switch input:checked + .track{background:var(--leaf-deep);}
   .switch input:checked + .track::before{transform:translateX(18px);}
 
+  .settings-entry-link{
+    background:none;
+    border:none;
+    padding:0;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color:#9AA8A0;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    cursor:pointer;
+  }
+  .settings-entry-link:hover{color:var(--sub);}
+
   .idbar-row{
     display:flex;
     align-items:center;
@@ -883,7 +896,7 @@
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-24</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-25</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -926,29 +939,42 @@
 
   // ---------- Auth UI ----------
 
+  let authMode = 'login'; // 'login' ou 'signup'
+
   function renderIdbar(){
     if(!session){
-      idbar.innerHTML = `
-        <input type="text" id="userInput" placeholder="pseudo" maxlength="24">
-        <div class="avatar-picker" id="avatarPicker"></div>
-        <input type="email" id="emailInput" placeholder="email">
-        <input type="password" id="passInput" placeholder="mot de passe">
-        <input type="text" id="referralInput" placeholder="pseudo du parrain (facultatif)" autocomplete="off">
-        <button class="primary" id="loginBtn">Se connecter</button>
-        <button class="ghost" id="signupBtn">Créer un compte</button>
-      `;
-      const picker = document.getElementById('avatarPicker');
-      picker.innerHTML = AVATAR_OPTIONS.map(a =>
-        `<button type="button" class="avatar-opt${a===chosenAvatar?' selected':''}" data-avatar="${a}">${a}</button>`
-      ).join('');
-      picker.querySelectorAll('.avatar-opt').forEach(btn => {
-        btn.onclick = () => {
-          chosenAvatar = btn.dataset.avatar;
-          picker.querySelectorAll('.avatar-opt').forEach(b => b.classList.toggle('selected', b === btn));
-        };
-      });
-      document.getElementById('loginBtn').onclick = () => authAction('signInWithPassword');
-      document.getElementById('signupBtn').onclick = () => authAction('signUp');
+      if(authMode === 'login'){
+        idbar.innerHTML = `
+          <input type="email" id="emailInput" placeholder="email">
+          <input type="password" id="passInput" placeholder="mot de passe">
+          <button class="primary" id="loginBtn">Se connecter</button>
+          <button type="button" class="settings-entry-link" id="switchToSignup">Créer un compte</button>
+        `;
+        document.getElementById('loginBtn').onclick = () => authAction('signInWithPassword');
+        document.getElementById('switchToSignup').onclick = () => { authMode = 'signup'; renderIdbar(); };
+      } else {
+        idbar.innerHTML = `
+          <input type="text" id="userInput" placeholder="pseudo" maxlength="24">
+          <div class="avatar-picker" id="avatarPicker"></div>
+          <input type="email" id="emailInput" placeholder="email">
+          <input type="password" id="passInput" placeholder="mot de passe">
+          <input type="text" id="referralInput" placeholder="pseudo du parrain (facultatif)" autocomplete="off">
+          <button class="primary" id="signupBtn">Créer un compte</button>
+          <button type="button" class="settings-entry-link" id="switchToLogin">J'ai déjà un compte</button>
+        `;
+        const picker = document.getElementById('avatarPicker');
+        picker.innerHTML = AVATAR_OPTIONS.map(a =>
+          `<button type="button" class="avatar-opt${a===chosenAvatar?' selected':''}" data-avatar="${a}">${a}</button>`
+        ).join('');
+        picker.querySelectorAll('.avatar-opt').forEach(btn => {
+          btn.onclick = () => {
+            chosenAvatar = btn.dataset.avatar;
+            picker.querySelectorAll('.avatar-opt').forEach(b => b.classList.toggle('selected', b === btn));
+          };
+        });
+        document.getElementById('signupBtn').onclick = () => authAction('signUp');
+        document.getElementById('switchToLogin').onclick = () => { authMode = 'login'; renderIdbar(); };
+      }
     } else {
       if(!profile){
         idbar.innerHTML = `
@@ -995,12 +1021,13 @@
           renderAccountSettings();
           loadLeaderboard();
         };
-        document.getElementById('logoutBtn').onclick = async () => { await sb.auth.signOut(); };
+        document.getElementById('logoutBtn').onclick = async () => { authMode = 'login'; await sb.auth.signOut(); };
         return;
       }
       const label = profile ? `${profile.avatar} ${escapeHtml(profile.username)}` : escapeHtml(session.user.email);
       idbar.innerHTML = `<span class="whoami">Connecté comme <b>${label}</b></span> <button class="ghost" id="logoutBtn">Se déconnecter</button>`;
       document.getElementById('logoutBtn').onclick = async () => {
+        authMode = 'login';
         await sb.auth.signOut();
       };
     }
@@ -1009,7 +1036,8 @@
   async function authAction(method){
     const email = document.getElementById('emailInput').value.trim();
     const password = document.getElementById('passInput').value;
-    const username = document.getElementById('userInput').value.trim();
+    const usernameInput = document.getElementById('userInput');
+    const username = usernameInput ? usernameInput.value.trim() : '';
     redeemMsg.className = 'msg show';
     if(!email || !password){
       redeemMsg.classList.add('err');
