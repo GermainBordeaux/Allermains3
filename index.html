@@ -423,6 +423,34 @@
   }
   .settings-entry-link:hover{color:var(--sub);}
 
+  .streak-boxes{
+    display:flex;
+    gap:5px;
+    margin-top:8px;
+  }
+  .streak-box{
+    width:22px;
+    height:22px;
+    border-radius:6px;
+    border:1.5px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    background:var(--panel);
+    color:var(--sub);
+    transition:background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .streak-box.filled{
+    background:var(--leaf-deep);
+    border-color:var(--leaf-deep);
+    color:#fff;
+  }
+  .streak-box.today-pending{
+    border-color:var(--gold);
+    border-style:dashed;
+  }
+
   .idbar-row{
     display:flex;
     align-items:center;
@@ -843,6 +871,7 @@
       <div>
         <p class="settings-page-label">Mon solde</p>
         <p class="settings-page-desc" id="streakDesc">Connecte-toi pour voir ton streak.</p>
+        <div class="streak-boxes" id="streakBoxes"></div>
       </div>
       <div id="dolipraneBalance" style="font-family:'JetBrains Mono', monospace; font-weight:700; font-size:20px; color:var(--leaf-deep);">—</div>
     </div>
@@ -896,7 +925,7 @@
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-26</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-27</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -2059,9 +2088,25 @@
     }
 
     balanceEl.textContent = profile ? `${profile.doliprane ?? 0} 💊` : '—';
+    const streakCount = profile ? (profile.streak_count ?? 0) : 0;
+    const claimedToday = profile && profile.last_checkin === new Date().toISOString().slice(0,10);
     document.getElementById('streakDesc').textContent = profile
-      ? `Série actuelle : ${profile.streak_count ?? 0} jour${(profile.streak_count ?? 0) > 1 ? 's' : ''}${profile.last_checkin === new Date().toISOString().slice(0,10) ? ' — déjà réclamé aujourd’hui' : ''}`
+      ? `Série actuelle : ${streakCount} jour${streakCount > 1 ? 's' : ''}${claimedToday ? ' — déjà réclamé aujourd’hui' : ''}`
       : 'Connecte-toi pour voir ton streak.';
+
+    const streakBoxes = document.getElementById('streakBoxes');
+    if(!profile){
+      streakBoxes.innerHTML = '';
+    } else {
+      // Position dans le cycle de 7 jours actuel (7 = bonus tout juste atteint)
+      const filledCount = streakCount === 0 ? 0 : (streakCount % 7 === 0 ? 7 : streakCount % 7);
+      streakBoxes.innerHTML = Array.from({ length: 7 }, (_, i) => {
+        const day = i + 1;
+        const isFilled = day <= filledCount;
+        const isNext = !claimedToday && day === filledCount + 1;
+        return `<div class="streak-box${isFilled ? ' filled' : ''}${isNext ? ' today-pending' : ''}" title="Jour ${day}${day === 7 ? ' (bonus +10💊)' : ''}">${isFilled ? '✓' : day}</div>`;
+      }).join('');
+    }
 
     const { data: items, error: itemsError } = await sb.from('shop_items').select('*').order('price', { ascending: true });
     if(itemsError || !items || items.length === 0){
