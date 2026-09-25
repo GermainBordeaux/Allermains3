@@ -451,6 +451,33 @@
     border-style:dashed;
   }
 
+  .battle-log{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px;
+    margin-top:12px;
+    font-size:13px;
+    line-height:1.7;
+    color:var(--ink);
+  }
+  .battle-log .winner-line{
+    font-weight:800;
+    color:var(--leaf-deep);
+    margin-top:8px;
+    display:block;
+  }
+  .battle-result-badge{
+    display:inline-block;
+    padding:3px 9px;
+    border-radius:100px;
+    font-size:11px;
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700;
+  }
+  .battle-result-badge.win{background:var(--leaf-pale); color:var(--leaf-deep);}
+  .battle-result-badge.loss{background:#FCEEEC; color:#B24A38;}
+
   .idbar-row{
     display:flex;
     align-items:center;
@@ -788,6 +815,7 @@
     <button type="button" class="tab" data-tab="leaderboard">Classement</button>
     <button type="button" class="tab" data-tab="settings">Paramètres</button>
     <button type="button" class="tab" data-tab="shop">Shop</button>
+    <button type="button" class="tab" data-tab="battles">Combats</button>
     <button type="button" class="tab" data-tab="trades">Échanges<span class="tab-badge" id="tradesBadge" style="display:none;"></span></button>
     <button type="button" class="tab" data-tab="admin" id="adminTabBtn" style="display:none;">Admin</button>
   </div>
@@ -892,6 +920,33 @@
   </div>
 </section>
 
+<section class="tab-panel" data-panel="battles" style="display:none;">
+  <div class="wrap">
+    <h2>Combats</h2>
+    <p class="section-note">Combat tour par tour : celui qui a le moins de PV commence, jusqu'à ce qu'un des deux camps tombe à 0.</p>
+
+    <div class="account-block">
+      <p class="settings-page-label">Lancer un combat</p>
+      <div class="pin-form" style="flex-direction:column; align-items:stretch; gap:8px;">
+        <select id="battleMyCard"></select>
+        <input type="text" id="battleOpponentUsername" placeholder="pseudo de l'adversaire" autocomplete="off">
+        <div class="section-note" id="battleLookupStatus" style="margin:0;"></div>
+        <select id="battleOpponentCard" disabled>
+          <option value="">Tape d'abord un pseudo ↑</option>
+        </select>
+        <button class="primary" id="startBattleBtn">Lancer le combat</button>
+      </div>
+      <div class="msg" id="battleMsg"></div>
+      <div id="battleResult"></div>
+    </div>
+
+    <div class="account-block" style="margin-top:20px;">
+      <p class="settings-page-label">Historique de mes combats</p>
+      <div id="battleHistory"></div>
+    </div>
+  </div>
+</section>
+
 <section class="tab-panel" data-panel="trades" style="display:none;">
   <div class="wrap">
     <h2>Échanges</h2>
@@ -925,7 +980,7 @@
   </div>
 </section>
 
-<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-27</span></footer>
+<footer>Allermain — projet perso, v1 (connecté à Supabase). <span style="opacity:0.5;">build-28</span></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
@@ -1333,6 +1388,7 @@
     populateTradeSelects();
     await loadProfile();
     loadShop();
+    populateBattleMyCard();
   }
 
   codeInput.addEventListener('keydown', e => { if(e.key === 'Enter') redeemBtn.click(); });
@@ -1403,7 +1459,7 @@
         <span class="glyph">${m.glyph}</span>
         <div class="info">
           <b>${escapeHtml(m.name)}</b>
-          <span>${categoryLabel(m.category)} — ${escapeHtml(m.id)}</span>
+          <span>${categoryLabel(m.category)} — ${escapeHtml(m.id)} — ${m.hp ?? 10} PV / ${m.damage ?? 3} DGT</span>
         </div>
         <div class="actions">
           <button type="button" class="ghost" data-edit="${m.id}">Éditer</button>
@@ -1451,6 +1507,8 @@
             </select>
             <input type="text" class="edit-glyph" value="${escapeHtml(m.glyph)}" maxlength="4" placeholder="emoji">
             <input type="text" class="edit-desc" value="${escapeHtml(m.description)}" placeholder="description">
+            <input type="number" class="edit-hp" value="${m.hp ?? 10}" min="1" placeholder="PV">
+            <input type="number" class="edit-damage" value="${m.damage ?? 3}" min="1" placeholder="Dégâts">
             <div style="display:flex; gap:8px;">
               <button type="button" class="primary edit-save">Enregistrer</button>
               <button type="button" class="ghost edit-cancel">Annuler</button>
@@ -1465,6 +1523,8 @@
           const category = form.querySelector('.edit-category').value;
           const glyph = form.querySelector('.edit-glyph').value.trim() || '🃏';
           const description = form.querySelector('.edit-desc').value.trim();
+          const hp = parseInt(form.querySelector('.edit-hp').value, 10) || 10;
+          const damage = parseInt(form.querySelector('.edit-damage').value, 10) || 3;
           const msg = form.querySelector('.edit-msg');
           msg.className = 'msg show';
           if(!name){
@@ -1473,7 +1533,8 @@
             return;
           }
           const { error } = await sb.rpc('admin_update_card_model', {
-            pin: adminPin, p_id: id, p_name: name, p_glyph: glyph, p_description: description, p_category: category
+            pin: adminPin, p_id: id, p_name: name, p_glyph: glyph, p_description: description,
+            p_category: category, p_hp: hp, p_damage: damage
           });
           if(error){
             msg.classList.add('err');
@@ -1590,6 +1651,8 @@
             </select>
             <input type="text" id="newCardGlyph" placeholder="emoji (ex: 🥜)" maxlength="4" autocomplete="off">
             <input type="text" id="newCardDesc" placeholder="petite description" autocomplete="off">
+            <input type="number" id="newCardHp" placeholder="PV (points de vie)" min="1" value="10" autocomplete="off">
+            <input type="number" id="newCardDamage" placeholder="Dégâts" min="1" value="3" autocomplete="off">
             <button class="primary" id="createCardBtn">Créer la carte</button>
           </div>
           <div class="msg" id="createCardMsg"></div>
@@ -1710,6 +1773,8 @@
       const category = document.getElementById('newCardCategory').value;
       const glyph = document.getElementById('newCardGlyph').value.trim() || '🃏';
       const description = document.getElementById('newCardDesc').value.trim();
+      const hp = parseInt(document.getElementById('newCardHp').value, 10) || 10;
+      const damage = parseInt(document.getElementById('newCardDamage').value, 10) || 3;
       const createMsg = document.getElementById('createCardMsg');
       createMsg.className = 'msg show';
 
@@ -1725,7 +1790,9 @@
         p_name: name,
         p_glyph: glyph,
         p_description: description,
-        p_category: category
+        p_category: category,
+        p_hp: hp,
+        p_damage: damage
       });
       if(error){
         createMsg.classList.add('err');
@@ -2347,6 +2414,7 @@
         await loadTrades();
         loadLeaderboard();
         populateTradeSelects();
+        populateBattleMyCard();
       };
     });
     tradesList.querySelectorAll('.trade-decline').forEach(btn => {
@@ -2361,6 +2429,144 @@
         await loadTrades();
       };
     });
+  }
+
+  // ---------- Combats ----------
+
+  function populateBattleMyCard(){
+    const select = document.getElementById('battleMyCard');
+    if(!select) return;
+    const myModelIds = new Set(collection.map(c => c.model_id));
+    const myModels = Object.values(cardModels).filter(m => myModelIds.has(m.id));
+    select.innerHTML = myModels.length
+      ? myModels.map(m => `<option value="${m.id}">${m.glyph} ${escapeHtml(m.name)} (${m.hp} PV / ${m.damage} DGT)</option>`).join('')
+      : `<option value="">Tu ne possèdes aucune carte</option>`;
+  }
+
+  let battleLookupTimer = null;
+  const battleOpponentUsernameInput = document.getElementById('battleOpponentUsername');
+  if(battleOpponentUsernameInput){
+    battleOpponentUsernameInput.addEventListener('input', () => {
+      clearTimeout(battleLookupTimer);
+      const oppSelect = document.getElementById('battleOpponentCard');
+      const status = document.getElementById('battleLookupStatus');
+      const username = battleOpponentUsernameInput.value.trim();
+
+      if(!username){
+        oppSelect.disabled = true;
+        oppSelect.innerHTML = `<option value="">Tape d'abord un pseudo ↑</option>`;
+        status.textContent = '';
+        return;
+      }
+      status.textContent = 'Recherche…';
+      battleLookupTimer = setTimeout(async () => {
+        const { data, error } = await sb.rpc('view_collection', { p_username: username });
+        if(error || !data){
+          oppSelect.disabled = true;
+          oppSelect.innerHTML = `<option value="">Erreur de recherche</option>`;
+          status.textContent = '';
+          return;
+        }
+        if(data.length === 0){
+          oppSelect.disabled = true;
+          oppSelect.innerHTML = `<option value="">Ce pseudo n'existe pas ou n'a aucune carte</option>`;
+          status.textContent = `Aucune carte trouvée pour "${username}".`;
+          return;
+        }
+        oppSelect.disabled = false;
+        oppSelect.innerHTML = data.map(row => {
+          const m = cardModels[row.model_id];
+          return `<option value="${row.model_id}">${m ? m.glyph + ' ' + escapeHtml(m.name) + ` (${m.hp} PV / ${m.damage} DGT)` : row.model_id}</option>`;
+        }).join('');
+        status.textContent = `${data.length} carte${data.length > 1 ? 's' : ''} disponible${data.length > 1 ? 's' : ''} chez ${escapeHtml(username)}.`;
+      }, 400);
+    });
+  }
+
+  const startBattleBtn = document.getElementById('startBattleBtn');
+  if(startBattleBtn){
+    startBattleBtn.onclick = async () => {
+      const myModelId = document.getElementById('battleMyCard').value;
+      const oppUsername = document.getElementById('battleOpponentUsername').value.trim();
+      const oppModelId = document.getElementById('battleOpponentCard').value;
+      const msg = document.getElementById('battleMsg');
+      const resultEl = document.getElementById('battleResult');
+      msg.className = 'msg show';
+      resultEl.innerHTML = '';
+
+      if(!session){
+        msg.classList.add('err');
+        msg.textContent = 'Connecte-toi d’abord.';
+        return;
+      }
+      if(!myModelId){
+        msg.classList.add('err');
+        msg.textContent = 'Tu n’as aucune carte à engager.';
+        return;
+      }
+      if(!oppUsername || !oppModelId || document.getElementById('battleOpponentCard').disabled){
+        msg.classList.add('err');
+        msg.textContent = 'Cherche d’abord un adversaire valide et choisis sa carte.';
+        return;
+      }
+
+      const { data, error } = await sb.rpc('start_battle', {
+        p_challenger_id: session.user.id,
+        p_challenger_model_id: myModelId,
+        p_defender_username: oppUsername,
+        p_defender_model_id: oppModelId
+      });
+      if(error){
+        msg.classList.add('err');
+        msg.textContent = error.message.includes('defender not found') ? 'Adversaire introuvable.'
+          : error.message.includes('cannot battle yourself') ? 'Tu ne peux pas te combattre toi-même.'
+          : error.message.includes('do not own this card') ? 'Tu ne possèdes pas cette carte.'
+          : error.message.includes('does not own this card') ? 'L’adversaire ne possède pas cette carte.'
+          : 'Erreur : ' + error.message;
+        return;
+      }
+      msg.className = 'msg';
+      const battle = data[0];
+      resultEl.innerHTML = `<div class="battle-log">${escapeHtml(battle.log).replace(/Vainqueur : (.+)!$/, '<span class="winner-line">Vainqueur : $1 !</span>')}</div>`;
+      await loadBattleHistory();
+    };
+  }
+
+  async function loadBattleHistory(){
+    const historyEl = document.getElementById('battleHistory');
+    if(!historyEl) return;
+    if(!session){
+      historyEl.innerHTML = 'Connecte-toi pour voir tes combats.';
+      return;
+    }
+    const { data, error } = await sb.rpc('my_battles', { p_user_id: session.user.id });
+    if(error || !data){
+      historyEl.innerHTML = 'Impossible de charger l’historique.';
+      return;
+    }
+    if(data.length === 0){
+      historyEl.innerHTML = '<div class="empty">Aucun combat pour l’instant.</div>';
+      return;
+    }
+    historyEl.innerHTML = data.map(b => {
+      const myM = cardModels[b.my_model_id];
+      const oppM = cardModels[b.opponent_model_id];
+      const badge = b.i_won === null
+        ? `<span class="battle-result-badge">Égalité</span>`
+        : b.i_won
+        ? `<span class="battle-result-badge win">Victoire</span>`
+        : `<span class="battle-result-badge loss">Défaite</span>`;
+      return `
+        <div class="manage-card-row" style="flex-direction:column; align-items:flex-start; gap:6px;">
+          <div style="font-size:13.5px;">
+            ${myM ? myM.glyph + ' ' + escapeHtml(myM.name) : b.my_model_id} vs
+            ${oppM ? oppM.glyph + ' ' + escapeHtml(oppM.name) : b.opponent_model_id}
+            contre <b>${escapeHtml(b.opponent_username)}</b> — ${badge}
+          </div>
+          <div style="font-size:11px; color:var(--sub);">${b.turns} tour${b.turns > 1 ? 's' : ''}</div>
+        </div>
+      `;
+    }).join('');
   }
 
   // ---------- Navigation par onglets ----------
@@ -2412,6 +2618,8 @@
     populateTradeSelects();
     loadTrades();
     loadShop();
+    populateBattleMyCard();
+    loadBattleHistory();
   });
 
   (async () => {
@@ -2429,6 +2637,8 @@
     populateTradeSelects();
     loadTrades();
     loadShop();
+    populateBattleMyCard();
+    loadBattleHistory();
   })();
 })();
 </script>
